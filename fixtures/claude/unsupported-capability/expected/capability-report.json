@@ -1,0 +1,10 @@
+{
+  "findings": [
+    {
+      "target": "claude",
+      "componentType": "hook",
+      "componentId": "pre-bash-check",
+      "support": "native"
+    }
+  ]
+}

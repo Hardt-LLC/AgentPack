@@ -1,0 +1,11 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+metadata:
+  name: merge-pack
+  version: 1.0.0
+  description: One project instruction merged into the native instructions file
+spec:
+  instructions:
+    - id: team-rules
+      path: ./instructions/team-rules.md
+      scope: project

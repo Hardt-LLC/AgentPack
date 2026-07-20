@@ -1,0 +1,17 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+metadata:
+  name: override-pack
+  version: 1.0.0
+  description: Disabled for codex; one instruction targets claude only
+spec:
+  targets:
+    codex:
+      enabled: false
+  skills:
+    - path: ./skills/shared-skill
+  instructions:
+    - id: claude-only-note
+      path: ./instructions/claude-only.md
+      scope: project
+      targets: [claude]

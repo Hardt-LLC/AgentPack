@@ -1,0 +1,13 @@
+[
+  {
+    "type": "createSymlink",
+    "path": "$PROJECT/.claude/skills/shared-skill",
+    "target": "$PACK/skills/shared-skill"
+  },
+  {
+    "type": "managedMarkdownSection",
+    "path": "$PROJECT/CLAUDE.md",
+    "sectionId": "claude-only-note",
+    "content": "## Claude-only note\n\nThis instruction must only appear for Claude.\n"
+  }
+]

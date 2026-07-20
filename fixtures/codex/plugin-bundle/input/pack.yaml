@@ -1,0 +1,25 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+metadata:
+  name: bundle-pack
+  version: 2.1.0
+  description: A pack distributed as a plugin bundle
+spec:
+  plugin:
+    enabled: true
+    interface:
+      displayName: Bundle Pack
+      shortDescription: Short bundle summary
+      author: AgentPack Team
+  skills:
+    - path: ./skills/deep-review
+  mcpServers:
+    api:
+      transport: stdio
+      command: node
+      args: ["./server.mjs"]
+  hooks:
+    - id: lint-before-write
+      event: preToolUse
+      matcher: shell
+      command: ["npm", "run", "lint"]

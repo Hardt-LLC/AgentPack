@@ -1,0 +1,9 @@
+[mcp_servers.local-tools]
+command = "node"
+args = [ "./tools.mjs" ]
+
+[mcp_servers.remote-api]
+url = "https://api.example.com/mcp"
+
+[mcp_servers.remote-api.http_headers]
+X-Api-Key = "${API_KEY}"

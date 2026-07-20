@@ -1,0 +1,12 @@
+{
+  "findings": [
+    {
+      "target": "codex",
+      "componentType": "hook",
+      "componentId": "pre-bash-check",
+      "support": "unsupported",
+      "message": "Codex has no hook system",
+      "remediation": "use a skill or CI check instead; the hook is still exported into the plugin bundle"
+    }
+  ]
+}

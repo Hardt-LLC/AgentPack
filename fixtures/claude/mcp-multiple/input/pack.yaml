@@ -1,0 +1,18 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+metadata:
+  name: multi-mcp-pack
+  version: 1.0.0
+  description: Two MCP servers merged into one native config file
+spec:
+  mcpServers:
+    local-tools:
+      transport: stdio
+      command: node
+      args: ["./tools.mjs"]
+    remote-api:
+      transport: http
+      url: https://api.example.com/mcp
+      headers:
+        X-Api-Key:
+          fromEnv: API_KEY

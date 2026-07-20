@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "local-tools": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "./tools.mjs"
+      ]
+    },
+    "remote-api": {
+      "type": "http",
+      "url": "https://api.example.com/mcp",
+      "headers": {
+        "X-Api-Key": "${API_KEY}"
+      }
+    }
+  }
+}

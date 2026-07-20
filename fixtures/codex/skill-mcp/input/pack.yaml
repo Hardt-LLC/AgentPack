@@ -1,0 +1,20 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+metadata:
+  name: skill-mcp-pack
+  version: 1.0.0
+  description: One skill plus one stdio MCP server with env references
+spec:
+  skills:
+    - path: ./skills/web-search
+  mcpServers:
+    service:
+      transport: stdio
+      command: npx
+      args: ["-y", "@example/service-server"]
+      env:
+        MODE:
+          value: readonly
+        TOKEN:
+          fromEnv: SERVICE_TOKEN
+      passEnv: ["HOME"]

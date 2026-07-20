@@ -1,0 +1,9 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+metadata:
+  name: skill-only-pack
+  version: 1.0.0
+  description: Pack with a single skill and a references file
+spec:
+  skills:
+    - path: ./skills/hello-world

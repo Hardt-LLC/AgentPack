@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+.agentpack/generated/
+.agentpack/backups/
+.agentpack/state.json
+.DS_Store

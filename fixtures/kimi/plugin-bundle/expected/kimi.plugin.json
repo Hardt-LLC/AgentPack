@@ -1,0 +1,23 @@
+{
+  "name": "bundle-pack",
+  "version": "2.1.0",
+  "description": "A pack distributed as a plugin bundle",
+  "interface": {
+    "displayName": "Bundle Pack",
+    "shortDescription": "Short bundle summary",
+    "author": "AgentPack Team"
+  },
+  "skills": [
+    "skills/deep-review"
+  ],
+  "hooks": "./hooks",
+  "mcpServers": {
+    "api": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "./server.mjs"
+      ]
+    }
+  }
+}

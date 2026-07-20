@@ -1,0 +1,5 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Workspace
+packs:
+  - path: ./packs/pack-a
+  - path: ./packs/pack-b

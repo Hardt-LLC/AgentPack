@@ -1,0 +1,10 @@
+{
+  "id": "lint-before-write",
+  "event": "preToolUse",
+  "matcher": "shell",
+  "command": [
+    "npm",
+    "run",
+    "lint"
+  ]
+}

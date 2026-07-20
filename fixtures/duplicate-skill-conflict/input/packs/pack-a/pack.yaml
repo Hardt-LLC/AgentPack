@@ -1,0 +1,8 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+metadata:
+  name: pack-a
+  version: 1.0.0
+spec:
+  skills:
+    - path: ./skills/dup

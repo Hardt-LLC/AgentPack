@@ -1,0 +1,16 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Workspace
+
+packs:
+  - path: ./packs/security-review
+
+profiles:
+  default:
+    packs:
+      - security-review
+    targets:
+      - codex
+      - claude
+      - kimi
+    scope: project
+    installMode: auto

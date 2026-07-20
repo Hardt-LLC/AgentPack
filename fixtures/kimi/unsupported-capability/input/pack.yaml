@@ -1,0 +1,12 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+metadata:
+  name: capability-pack
+  version: 1.0.0
+  description: One hook, classified differently per target
+spec:
+  hooks:
+    - id: pre-bash-check
+      event: preToolUse
+      matcher: Bash
+      command: ["./scripts/check.sh"]

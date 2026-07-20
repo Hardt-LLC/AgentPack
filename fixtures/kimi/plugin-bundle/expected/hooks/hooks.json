@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "preToolUse": [
+      {
+        "id": "lint-before-write",
+        "matcher": "shell",
+        "command": [
+          "npm",
+          "run",
+          "lint"
+        ]
+      }
+    ]
+  }
+}

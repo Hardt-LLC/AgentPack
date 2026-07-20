@@ -1,0 +1,17 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+
+metadata:
+  name: hello
+  version: 0.1.0
+  description: Minimal example pack with a single skill
+
+spec:
+  skills:
+    - path: ./skills/hello
+
+  plugin:
+    enabled: true
+    interface:
+      displayName: Hello
+      shortDescription: Minimal example pack

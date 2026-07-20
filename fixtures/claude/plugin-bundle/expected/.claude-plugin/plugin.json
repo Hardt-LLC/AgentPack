@@ -1,0 +1,8 @@
+{
+  "name": "bundle-pack",
+  "version": "2.1.0",
+  "description": "A pack distributed as a plugin bundle",
+  "author": "AgentPack Team",
+  "displayName": "Bundle Pack",
+  "shortDescription": "Short bundle summary"
+}

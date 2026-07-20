@@ -1,0 +1,77 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+
+metadata:
+  name: security-review
+  version: 0.1.0
+  description: Shared security-review workflows
+  license: MIT
+  keywords:
+    - security
+    - review
+
+spec:
+  skills:
+    - path: ./skills/security-review
+
+  instructions:
+    - id: security-baseline
+      path: ./instructions/common.md
+      scope: project
+      priority: 100
+      targets:
+        - codex
+        - claude
+        - kimi
+
+  mcpServers:
+    github:
+      transport: http
+      url: https://example.invalid/mcp
+      headers:
+        Authorization:
+          fromEnv: GITHUB_TOKEN
+      approval:
+        default: prompt
+
+    local-security-tools:
+      transport: stdio
+      command: node
+      args:
+        - ./servers/security-tools.mjs
+      cwd: .
+      env:
+        SECURITY_MODE:
+          value: readonly
+      passEnv:
+        - HOME
+
+  hooks:
+    - id: block-dangerous-shell
+      event: preToolUse
+      matcher: shell
+      command:
+        - node
+        - ./hooks/check-shell.mjs
+      targets:
+        - claude
+        - kimi
+
+  plugin:
+    enabled: true
+    interface:
+      displayName: Security Review
+      shortDescription: Shared security review workflows
+
+  targets:
+    codex:
+      enabled: true
+    claude:
+      enabled: true
+    kimi:
+      enabled: true
+
+  extensions:
+    codex: {}
+    claude: {}
+    kimi: {}

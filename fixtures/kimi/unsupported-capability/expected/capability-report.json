@@ -1,0 +1,11 @@
+{
+  "findings": [
+    {
+      "target": "kimi",
+      "componentType": "hook",
+      "componentId": "pre-bash-check",
+      "support": "transpiled",
+      "message": "rendered to kimi hooks.json"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "severity": "error",
+    "message": "skill \"dup\" is provided by both \"pack-a\" and \"pack-b\"",
+    "source": "$ROOT/packs/pack-b"
+  }
+]

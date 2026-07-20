@@ -1,0 +1,29 @@
+[
+  {
+    "type": "createSymlink",
+    "path": "$PROJECT/.agents/skills/web-search",
+    "target": "$PACK/skills/web-search"
+  },
+  {
+    "type": "mergeToml",
+    "path": "$PROJECT/.codex/config.toml",
+    "table": [
+      "mcp_servers",
+      "service"
+    ],
+    "value": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@example/service-server"
+      ],
+      "env": {
+        "MODE": "readonly",
+        "TOKEN": "${SERVICE_TOKEN}"
+      },
+      "env_vars": [
+        "HOME"
+      ]
+    }
+  }
+]

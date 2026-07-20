@@ -1,0 +1,24 @@
+[
+  {
+    "type": "createSymlink",
+    "path": "$PROJECT/.claude/skills/web-search",
+    "target": "$PACK/skills/web-search"
+  },
+  {
+    "type": "mergeJson",
+    "path": "$PROJECT/.mcp.json",
+    "pointer": "/mcpServers/service",
+    "value": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@example/service-server"
+      ],
+      "env": {
+        "MODE": "readonly",
+        "TOKEN": "${SERVICE_TOKEN}"
+      }
+    }
+  }
+]

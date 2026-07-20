@@ -1,0 +1,28 @@
+{
+  "name": "agentpack",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "agentpack": "./dist/cli.mjs"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@agentpack/adapter-claude": "workspace:*",
+    "@agentpack/adapter-codex": "workspace:*",
+    "@agentpack/adapter-kimi": "workspace:*",
+    "@agentpack/core": "workspace:*",
+    "@agentpack/filesystem": "workspace:*",
+    "@agentpack/gateway": "workspace:*",
+    "@agentpack/schema": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

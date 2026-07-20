@@ -1,0 +1,7 @@
+[
+  {
+    "type": "createSymlink",
+    "path": "$PROJECT/.claude/skills/hello-world",
+    "target": "$PACK/skills/hello-world"
+  }
+]

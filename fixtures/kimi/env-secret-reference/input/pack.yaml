@@ -1,0 +1,15 @@
+apiVersion: agentpack.dev/v1alpha1
+kind: Pack
+metadata:
+  name: secret-pack
+  version: 1.0.0
+  description: HTTP MCP server whose Authorization header references a secret
+spec:
+  mcpServers:
+    remote-api:
+      transport: http
+      url: https://api.example.com/mcp
+      headers:
+        Authorization:
+          template: "Bearer ${SERVICE_TOKEN}"
+          requiredEnv: ["SERVICE_TOKEN"]
