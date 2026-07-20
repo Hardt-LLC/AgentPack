@@ -12,6 +12,8 @@ import { defaultRegistry } from "../registry.js";
 interface CollectCommandOptions extends GlobalOptions {
   from?: TargetId;
   dryRun?: boolean;
+  envRefs?: boolean;
+  quiet?: boolean;
 }
 
 export function registerCollect(program: Command): void {
@@ -22,6 +24,11 @@ export function registerCollect(program: Command): void {
       new Option("--from <target>", "collect only from this target").choices([...TARGET_IDS]),
     )
     .option("--dry-run", "show what would be collected without writing anything")
+    .option(
+      "--env-refs",
+      "convert literal secret-looking env/header values into { fromEnv: ... } references",
+    )
+    .option("--quiet", "print only a one-line summary when something changed (for session hooks)")
     .action(async (options: CollectCommandOptions) => {
       const registry = defaultRegistry();
       const targets = options.from
@@ -34,7 +41,25 @@ export function registerCollect(program: Command): void {
         const workspace = await loadCliWorkspace(program.opts<GlobalOptions>());
         const result = await collectFromTarget(workspace, registry, target, {
           dryRun: options.dryRun,
+          envRefs: options.envRefs === true,
         });
+
+        if (options.quiet) {
+          // Quiet mode is for agent session hooks: stdout lands in the
+          // agent's context, so only the actionable summary goes there.
+          printDiagnostics(result.diagnostics);
+          if (result.diagnostics.some((d) => d.severity === "error")) {
+            hadError = true;
+            continue;
+          }
+          if (result.changed && !options.dryRun) {
+            const count = result.newServers.length + result.newSkills.length;
+            out(
+              `AgentPack: collected ${count} new item(s) from ${target} → packs/inbox-${target} (say 'promote' to share)`,
+            );
+          }
+          continue;
+        }
 
         out(`Target ${target}:`);
         for (const name of result.newServers) out(`  + server ${name}`);
@@ -60,7 +85,7 @@ export function registerCollect(program: Command): void {
           );
         }
       }
-      if (options.dryRun) out("Dry run — no files were modified.");
+      if (options.dryRun && !options.quiet) out("Dry run — no files were modified.");
       throw new ExitSignal(hadError ? 2 : 0);
     });
 }

@@ -218,6 +218,68 @@ Restored entries are dropped from `adopted`; state is saved atomically at the
 end. Unmanaged configuration is never touched anywhere in the transaction, and
 `--dry-run` reports the full remove/restore plan without writing.
 
+## Native change collection
+
+Collection is the inward counterpart of import (`packages/core/collect.ts`):
+it detects MCP servers and skills installed **directly into an agent** and
+gathers them into the workspace for review.
+
+Pipeline per target:
+
+1. **Import** — the target adapter's read-only importer reads the user-scope
+   native config (skills, MCP servers).
+2. **Delta against the known set** — a server is skipped when its name
+   (lowercased) is already canonical in any workspace pack, was previously
+   adopted from this target, or is the gateway entry; a skill is skipped when
+   its content hash matches any skill in any pack (or an existing inbox skill
+   path). Server names are normalized to lowercase-hyphen pack keys
+   (`XcodeBuildMCP` → `xcodebuildmcp`, numeric suffix on collision).
+   Instructions are never collected.
+3. **Secret curation** — literal env/header values matching the secret
+   patterns are preserved verbatim with a warning by default, or converted to
+   `{ fromEnv: NAME }` with `--env-refs` (values are never printed either
+   way).
+4. **Merge into the inbox pack** — new skills are written under
+   `packs/inbox-<target>/skills/` and new servers merged into the existing
+   (or freshly created) inbox `pack.yaml`, atomically. The workspace manifest
+   gains a `- path: ./packs/inbox-<target>` reference — but the pack is
+   **never added to any profile**, so `resolveSelection` never picks it up
+   and nothing fans out.
+
+**Where inbox packs sit in the ownership model:** they are ordinary canonical
+packs on disk, but outside every profile — the sync engine never plans
+operations for them, so they produce no `ownedFiles`/`ownedConfigKeys` entries
+and no trust requirements until promoted. Collection itself writes only inside
+the workspace (inbox pack + the `agentpack.yaml` reference); native agent
+config is only read.
+
+**Promotion** (`packages/core/promote.ts`) is the explicit boundary crossing:
+`agentpack promote <pack>` appends the pack to the `default` profile in
+`agentpack.yaml`, records a content-hash trust grant in `state.json` (the same
+hash the trust gate computes, so the subsequent sync passes), reloads the
+workspace, and runs a normal sync.
+
+**Automation drivers** feed the same collect function:
+
+- `agentpack watch --collect` additionally watches each target's native
+  sources (`adapter.nativeSources`, user scope) with a 2 s debounce and emits
+  `collected` events; collect's own writes (inbox packs, the `agentpack.yaml`
+  edit) are suppressed so they cannot trigger sync cycles.
+- `agentpack service install` registers that watch command as a per-user
+  login service — launchd (`~/Library/LaunchAgents/dev.agentpack.watch.plist`)
+  on macOS, a systemd `--user` unit on Linux — logging to
+  `.agentpack/service.log`. Loading is best-effort: if `launchctl bootstrap`
+  fails, the file still auto-loads at next login and the warning carries the
+  exact manual command.
+- `agentpack hooks install` appends an AgentPack-owned SessionStart entry to
+  `~/.claude/settings.json` (marker: the command contains `collect --from`)
+  running `agentpack collect --from claude --quiet`. With `--quiet`, collect
+  prints a single line only when something was collected — that line lands in
+  the agent's session context, so the agent can relay it ("say 'promote' to
+  share"). Install is idempotent and backs up `settings.json` first;
+  uninstall removes only marked entries and prunes the array when empty.
+  Other targets report "no hook system".
+
 ## Conflict handling
 
 Before applying, sync re-checksums every owned path and owned key and compares

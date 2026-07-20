@@ -48,6 +48,12 @@ export interface CollectOptions {
   dryRun?: boolean;
   env?: Record<string, string | undefined>;
   homeDir?: string;
+  /**
+   * Convert literal env/header values that look like secrets into
+   * `{ fromEnv: <NAME> }` references. Default false: literals are preserved
+   * verbatim (with a warning diagnostic per entry).
+   */
+  envRefs?: boolean;
 }
 
 /** Extract the server name from an adopted config key (json or toml). */
@@ -84,30 +90,42 @@ function toEnvVarName(key: string): string {
 }
 
 /**
- * Replace literal env/header values that look like secrets with
- * `{ fromEnv: <NAME> }` references, so the inbox pack never persists secrets.
+ * Handle literal env/header values that look like secrets. With
+ * `envRefs: true` they are converted to `{ fromEnv: <NAME> }` references so
+ * the inbox pack never persists secrets; otherwise the literal is preserved
+ * verbatim and a warning is emitted (the value is never printed).
  */
 function curateSecrets(
   serverName: string,
   server: Omit<CanonicalMcpServer, "name">,
   diagnostics: Diagnostic[],
+  envRefs: boolean,
 ): Omit<CanonicalMcpServer, "name"> {
   const out = { ...server };
   for (const field of ["env", "headers"] as const) {
     const record = server[field];
     if (!record) continue;
     const next: typeof record = { ...record };
+    let touched = false;
     for (const [key, value] of Object.entries(record)) {
       if (!("value" in value)) continue;
       if (findHardcodedSecrets(value.value).length === 0) continue;
-      const varName = toEnvVarName(key);
-      next[key] = { fromEnv: varName };
-      diagnostics.push({
-        severity: "info",
-        message: `server "${serverName}" ${field}.${key}: literal value matches a secret pattern; stored as { fromEnv: ${varName} }`,
-      });
+      touched = true;
+      if (envRefs) {
+        const varName = toEnvVarName(key);
+        next[key] = { fromEnv: varName };
+        diagnostics.push({
+          severity: "info",
+          message: `server "${serverName}" ${field}.${key}: literal value matches a secret pattern; stored as { fromEnv: ${varName} }`,
+        });
+      } else {
+        diagnostics.push({
+          severity: "warning",
+          message: `server "${serverName}" ${field}.${key}: possible secret preserved as literal in inbox pack — use --env-refs to convert`,
+        });
+      }
     }
-    out[field] = next;
+    if (touched) out[field] = next;
   }
   return out;
 }
@@ -236,7 +254,7 @@ export async function collectFromTarget(
       });
     }
     takenNames.add(key);
-    newServerEntries.push([key, curateSecrets(name, server, diagnostics)]);
+    newServerEntries.push([key, curateSecrets(name, server, diagnostics, opts.envRefs === true)]);
     result.newServers.push(key);
   }
 

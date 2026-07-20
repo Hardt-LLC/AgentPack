@@ -134,6 +134,30 @@ things, both texts land in the file and the model sees both.
   and the backups directory remain; only native target configuration is
   touched.
 
+## Collection and automation limits
+
+- **Collect is user-scope only.** It reads each target's user-level native
+  config (`~/.claude`, `~/.codex`, `$KIMI_CODE_HOME`); servers or skills
+  installed at project scope in some other project are not seen.
+- **Instructions are not collected.** Plugin/agent instructions are
+  vendor-specific and too noisy to review mechanically — only MCP servers and
+  skills flow into inbox packs.
+- **Inbox packs are never auto-profiled.** `collect` adds the pack path to
+  `agentpack.yaml` but never to a profile; if you want an inbox entry shared,
+  `promote` the pack or move the entries into a profiled pack yourself.
+- **Dismissed items stay collected.** Skipping an inbox entry during review
+  does not teach collect to ignore it — and deleting the inbox pack (or an
+  entry in it) means the next native change re-collects the item, since it is
+  still present in the agent and no longer known to the workspace. To truly
+  dismiss an item, uninstall it from the agent.
+- **The watch service is per machine.** `agentpack service install` writes a
+  launchd plist or systemd unit on the local machine only; teammates and other
+  machines need their own install, and the unit embeds the local CLI path and
+  workspace root.
+- **The session collect hook is Claude-only.** Other targets report "no hook
+  system"; their collection path is the watch service or manual
+  `agentpack collect`.
+
 ## Other MVP boundaries
 
 - **Target ids are a closed enum** (`codex` | `claude` | `kimi`) in the

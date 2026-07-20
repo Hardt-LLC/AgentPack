@@ -30,17 +30,19 @@ result into each agent's native configuration.
 
 ## Features at a glance
 
-| Area                   | What you get                                                                                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Components             | Agent Skills, MCP servers (stdio/http/sse), instructions, hooks, plugin metadata — one `pack.yaml` per pack.                                           |
-| Targets                | OpenAI Codex, Anthropic Claude Code, Kimi Code; third-party targets via the adapter API.                                                               |
-| Capability negotiation | Per-component findings (`native` / `transpiled` / `degraded` / `unsupported`) with `permissive`, `strict`, and `portable` strictness modes.            |
-| Sync engine            | Side-effect-free plans, atomic writes, backups, conflict detection (exit 3), trust gate for executable packs (exit 4), idempotent re-syncs.            |
-| MCP gateway            | One entry per agent; live fan-out; tools namespaced `<server>__<tool>`; per-server degradation; `allowTools`/`denyTools` enforced uniformly.           |
-| Watch mode             | `agentpack watch` re-syncs on every pack edit, debounced; trust refusals and conflicts are reported while watching continues.                          |
-| Distribution           | Git-sourced packs pinned by commit in a lockfile; `agentpack build` produces redistributable per-target plugin bundles.                                |
-| Onboarding             | `gateway setup --adopt` / `sync --adopt` take over pre-existing config restorably; `agentpack uninstall` removes AgentPack and restores the originals. |
-| Secrets                | `{ fromEnv }` / template env references only — never resolved, never written to disk; hardcoded-secret scanning; names-only reporting.                 |
+| Area                   | What you get                                                                                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Components             | Agent Skills, MCP servers (stdio/http/sse), instructions, hooks, plugin metadata — one `pack.yaml` per pack.                                                   |
+| Targets                | OpenAI Codex, Anthropic Claude Code, Kimi Code; third-party targets via the adapter API.                                                                       |
+| Capability negotiation | Per-component findings (`native` / `transpiled` / `degraded` / `unsupported`) with `permissive`, `strict`, and `portable` strictness modes.                    |
+| Sync engine            | Side-effect-free plans, atomic writes, backups, conflict detection (exit 3), trust gate for executable packs (exit 4), idempotent re-syncs.                    |
+| MCP gateway            | One entry per agent; live fan-out; tools namespaced `<server>__<tool>`; per-server degradation; `allowTools`/`denyTools` enforced uniformly.                   |
+| Watch mode             | `agentpack watch` re-syncs on every pack edit, debounced; trust refusals and conflicts are reported while watching continues.                                  |
+| Distribution           | Git-sourced packs pinned by commit in a lockfile; `agentpack build` produces redistributable per-target plugin bundles.                                        |
+| Onboarding             | `gateway setup --adopt` / `sync --adopt` take over pre-existing config restorably; `agentpack uninstall` removes AgentPack and restores the originals.         |
+| Auto-collection        | `agentpack collect` gathers natively installed MCP servers/skills into reviewable `packs/inbox-<target>/` packs; `agentpack promote` shares them after review. |
+| Background operation   | `agentpack service install` runs `watch --collect` at login (launchd / systemd user); a Claude SessionStart hook collects at every session start.              |
+| Secrets                | `{ fromEnv }` / template env references only — never resolved, never written to disk; hardcoded-secret scanning; names-only reporting.                         |
 
 ## Installation
 
@@ -202,25 +204,32 @@ Selection flags shared by `validate`, `plan`, `sync`, `diff`, `build`:
 
 Commands:
 
-| Command                                 | What it does                                                                                                                                                                                                                                                                                                    |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agentpack init`                        | Scaffold `agentpack.yaml` and a starter `packs/` layout.                                                                                                                                                                                                                                                        |
-| `agentpack validate`                    | Full workspace validation: schemas, skills, duplicates, MCP env references, capability analysis. Fails (exit 1) on any error.                                                                                                                                                                                   |
-| `agentpack plan`                        | Print the side-effect-free execution plan per target: operations, capability findings, install strategy.                                                                                                                                                                                                        |
-| `agentpack sync`                        | Apply the plan: trust gate → conflict check → backup → apply → record ownership. Flags: `--dry-run`, `--force`, `--trust <pack>` (repeatable), `--adopt` (adopt unmanaged paths blocking planned creates), `--kimi-path-strategy shared\|kimi`.                                                                 |
-| `agentpack build`                       | Generate redistributable plugin bundles to `dist/<target>/<pack>/` (pure build step, separate from sync). Flags: `--output <dir>`, `--dry-run`.                                                                                                                                                                 |
-| `agentpack diff`                        | Show the difference between desired canonical state and installed state. Exit 0 = clean, exit 1 = differences.                                                                                                                                                                                                  |
-| `agentpack doctor`                      | Health checks: Node version, symlinks, target detection, config-root writability, required env vars (names only), state consistency, broken symlinks, native config parse errors.                                                                                                                               |
-| `agentpack list`                        | List packs, profiles, and detected targets.                                                                                                                                                                                                                                                                     |
-| `agentpack import --from <target>`      | Import existing native config (skills, MCP servers, instructions) into a new canonical pack under `packs/`. Read-only for the source; `--dry-run` supported.                                                                                                                                                    |
-| `agentpack remove <pack>`               | Remove everything the pack owns on the selected targets — and nothing else. Refuses to remove externally modified files. Flags: `--target`, `--scope`, `--dry-run`.                                                                                                                                             |
-| `agentpack rollback`                    | Restore the most recent backup (or `--to <backup-id>`). Backups are listed newest-first.                                                                                                                                                                                                                        |
-| `agentpack update`                      | Re-resolve git pack sources to the newest commit of their configured `ref` and rewrite `.agentpack/lock.json`.                                                                                                                                                                                                  |
-| `agentpack watch`                       | Watch all pack directories (recursive; ignores `.git`/`.agentpack`/`node_modules`/`dist`) and re-sync on change, debounced (`--debounce <ms>`, default 400). Trust refusals and conflicts are reported and watching continues. Flags: `--profile`, `--target`/`--targets`, `--scope`, `--mode`, `--strictness`. |
-| `agentpack gateway run --config <path>` | Run the MCP aggregation gateway on stdio. This is the process agents launch — you normally never run it by hand.                                                                                                                                                                                                |
-| `agentpack gateway setup`               | Write `<workspace>/gateway.json` (server definitions + launcher record), install ONE gateway MCP entry per target, and reclaim previously synced individual MCP keys AgentPack owns. Backs up first. Flags: `--targets`, `--scope`, `--force`, `--adopt` (adopt duplicate unmanaged MCP entries).               |
-| `agentpack gateway uninstall`           | Remove the gateway MCP entry from each target. A following `agentpack sync` restores the individual servers. Flags: `--targets`, `--scope`.                                                                                                                                                                     |
-| `agentpack uninstall`                   | Fully uninstall from the selected targets: remove everything AgentPack owns (files, config keys, the gateway entry), then restore every adopted (pre-AgentPack) config key and path. Flags: `--targets`, `--scope`, `--dry-run`.                                                                                |
+| Command                                 | What it does                                                                                                                                                                                                                                                                                                                                                                |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agentpack init`                        | Scaffold `agentpack.yaml` and a starter `packs/` layout.                                                                                                                                                                                                                                                                                                                    |
+| `agentpack validate`                    | Full workspace validation: schemas, skills, duplicates, MCP env references, capability analysis. Fails (exit 1) on any error.                                                                                                                                                                                                                                               |
+| `agentpack plan`                        | Print the side-effect-free execution plan per target: operations, capability findings, install strategy.                                                                                                                                                                                                                                                                    |
+| `agentpack sync`                        | Apply the plan: trust gate → conflict check → backup → apply → record ownership. Flags: `--dry-run`, `--force`, `--trust <pack>` (repeatable), `--adopt` (adopt unmanaged paths blocking planned creates), `--kimi-path-strategy shared\|kimi`.                                                                                                                             |
+| `agentpack build`                       | Generate redistributable plugin bundles to `dist/<target>/<pack>/` (pure build step, separate from sync). Flags: `--output <dir>`, `--dry-run`.                                                                                                                                                                                                                             |
+| `agentpack diff`                        | Show the difference between desired canonical state and installed state. Exit 0 = clean, exit 1 = differences.                                                                                                                                                                                                                                                              |
+| `agentpack doctor`                      | Health checks: Node version, symlinks, target detection, config-root writability, required env vars (names only), state consistency, broken symlinks, native config parse errors.                                                                                                                                                                                           |
+| `agentpack list`                        | List packs, profiles, and detected targets.                                                                                                                                                                                                                                                                                                                                 |
+| `agentpack import --from <target>`      | Import existing native config (skills, MCP servers, instructions) into a new canonical pack under `packs/`. Read-only for the source; `--dry-run` supported.                                                                                                                                                                                                                |
+| `agentpack remove <pack>`               | Remove everything the pack owns on the selected targets — and nothing else. Refuses to remove externally modified files. Flags: `--target`, `--scope`, `--dry-run`.                                                                                                                                                                                                         |
+| `agentpack rollback`                    | Restore the most recent backup (or `--to <backup-id>`). Backups are listed newest-first.                                                                                                                                                                                                                                                                                    |
+| `agentpack update`                      | Re-resolve git pack sources to the newest commit of their configured `ref` and rewrite `.agentpack/lock.json`.                                                                                                                                                                                                                                                              |
+| `agentpack watch`                       | Watch all pack directories (recursive; ignores `.git`/`.agentpack`/`node_modules`/`dist`) and re-sync on change, debounced (`--debounce <ms>`, default 400). Trust refusals and conflicts are reported and watching continues. Flags: `--profile`, `--target`/`--targets`, `--scope`, `--mode`, `--strictness`, `--collect` (also collect native changes into inbox packs). |
+| `agentpack collect`                     | Collect natively installed MCP servers and skills (plugin menus, manual installs) into reviewable `packs/inbox-<target>/` packs. User scope. Flags: `--from <target>`, `--dry-run`, `--env-refs` (convert literal secrets to env references), `--quiet` (one line, only on change).                                                                                         |
+| `agentpack promote <pack>`              | Review→share in one step: add the pack to the `default` profile, record a content-hash trust grant, and sync. Flag: `--dry-run`.                                                                                                                                                                                                                                            |
+| `agentpack service install`             | Install and load the per-user `watch --collect` background service (launchd on macOS, systemd user service on Linux; no sudo). Logs to `.agentpack/service.log`.                                                                                                                                                                                                            |
+| `agentpack service status`              | Show whether the watch service is installed and running.                                                                                                                                                                                                                                                                                                                    |
+| `agentpack service uninstall`           | Unload and remove the watch service.                                                                                                                                                                                                                                                                                                                                        |
+| `agentpack hooks install`               | Install the AgentPack-owned SessionStart collect hook (`agentpack collect --from claude --quiet`) into `~/.claude/settings.json`. Idempotent; backs up first; user hooks untouched. Flag: `--target claude` (default).                                                                                                                                                      |
+| `agentpack hooks uninstall`             | Remove only AgentPack's collect-hook entries from the Claude settings.                                                                                                                                                                                                                                                                                                      |
+| `agentpack gateway run --config <path>` | Run the MCP aggregation gateway on stdio. This is the process agents launch — you normally never run it by hand.                                                                                                                                                                                                                                                            |
+| `agentpack gateway setup`               | Write `<workspace>/gateway.json` (server definitions + launcher record), install ONE gateway MCP entry per target, and reclaim previously synced individual MCP keys AgentPack owns. Backs up first. Flags: `--targets`, `--scope`, `--force`, `--adopt` (adopt duplicate unmanaged MCP entries).                                                                           |
+| `agentpack gateway uninstall`           | Remove the gateway MCP entry from each target. A following `agentpack sync` restores the individual servers. Flags: `--targets`, `--scope`.                                                                                                                                                                                                                                 |
+| `agentpack uninstall`                   | Fully uninstall from the selected targets: remove everything AgentPack owns (files, config keys, the gateway entry), then restore every adopted (pre-AgentPack) config key and path. Flags: `--targets`, `--scope`, `--dry-run`.                                                                                                                                            |
 
 Exit codes:
 
@@ -395,6 +404,49 @@ Restart=on-failure
 [Install]
 WantedBy=default.target
 ```
+
+## Automatic collection
+
+Sync flows **outward** (canonical repo → agents). Collection flows **inward**:
+when you install MCP servers or skills directly into an agent — through a
+plugin menu or by hand — `agentpack collect` detects them via the target's
+importer and gathers the delta into a reviewable pack at
+`packs/inbox-<target>/` (also referenced from `agentpack.yaml`, but **never
+added to a profile**, so nothing fans out automatically).
+
+Delta rules: servers already canonical, adopted, or the gateway entry are
+skipped; skills are deduplicated by content hash; server names are normalized
+to lowercase-hyphen pack keys; instructions are never collected. Literal
+secret-looking values are **preserved** by default (they came from your own
+local files) with a warning — pass `--env-refs` to store them as
+`{ fromEnv: … }` references instead.
+
+The zero-input loop, once enabled:
+
+```bash
+agentpack service install   # runs `agentpack watch --collect` at login
+agentpack hooks install     # claude SessionStart hook: collect at every session start
+```
+
+From then on: install something in an agent → it lands in
+`packs/inbox-<target>/` within seconds (the watch service debounces native
+changes at 2s; the Claude hook reports one line into the agent's session
+context — "N new items collected — say 'promote' to share") → review the
+inbox pack and run:
+
+```bash
+agentpack promote inbox-claude
+```
+
+`promote` adds the pack to the `default` profile, records a content-hash trust
+grant, and syncs — one command from "collected" to "shared everywhere". The
+boundary is deliberate: **fan-out always stays behind review and trust** —
+collection only ever writes into the workspace's inbox packs, never into
+agent config.
+
+If `launchctl bootstrap` is blocked by your terminal's permissions on macOS,
+the service file is still written (and auto-loads at next login); the reported
+warning includes the exact manual command to load it now.
 
 ## Onboarding without losing your existing config
 

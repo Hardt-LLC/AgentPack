@@ -132,6 +132,44 @@ invariants in the codebase:
   only. Treat `state.json` accordingly if your pre-existing config contained
   secrets: adoption preserves them for restoration, it does not scrub them.
 
+## Collection and automation safety
+
+Collection reverses the data flow (agent → workspace), which raises its own
+questions:
+
+- **Collection is read-only toward agents.** The collect pipeline only _reads_
+  native config (via the adapters' importers) and only _writes_ inside the
+  workspace: `packs/inbox-<target>/` and one `agentpack.yaml` reference line.
+  It never modifies agent configuration.
+- **Fan-out still requires review and trust.** Inbox packs are referenced by
+  the workspace but deliberately never added to a profile, so the sync engine
+  never selects them. Sharing requires `agentpack promote` — an explicit human
+  action that grants a content-hash-bound trust decision subject to the same
+  invalidation rules as `--trust`. There is no path from "installed in an
+  agent" to "installed everywhere" that skips review.
+- **Literal-secret preservation is a deliberate tradeoff.** Collected env and
+  header values came from your own local files, so by default literals are
+  preserved verbatim (with a warning, value never printed) — silently
+  rewriting them into references would break servers whose variables don't
+  exist in the environment. If the workspace is shared (committed, synced to
+  other machines), use `agentpack collect --env-refs` so inbox packs store
+  `{ fromEnv: NAME }` references and never persist the secret material. Either
+  way, the value never appears in logs or diagnostics.
+- **The SessionStart hook executes AgentPack itself, nothing else.** The
+  installed Claude hook runs exactly
+  `node <cli-path> collect --from claude --quiet --workspace <root>` — the
+  same read-only collect. Its stdout is a single line, printed only when
+  something was collected; that line enters the agent's session context, which
+  is the intended channel for the agent to relay "say 'promote' to share". The
+  hook is identified by a marker string, so install/uninstall never touch your
+  other SessionStart hooks, and `settings.json` is backed up before either
+  operation.
+- **The background service is unprivileged.** `agentpack service install`
+  writes a per-user launchd plist or systemd `--user` unit (no sudo) that runs
+  `watch --collect` as you, with logs at `.agentpack/service.log`. It inherits
+  your environment — which is what allows the gateway and collect to resolve
+  `${VAR}` references the same way an interactive shell would.
+
 ## Secret handling rules
 
 - Canonical secret-bearing fields (`env`, `headers`) use `{ fromEnv: VAR }` or

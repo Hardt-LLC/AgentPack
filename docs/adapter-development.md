@@ -53,6 +53,12 @@ Method contracts:
   `instructions`, target-specific `extensions`, `warnings`). Render secret
   strings back as `fromEnv`/`template` references so imported manifests never
   contain secret values. The source configuration must not be modified.
+- **`nativeSources?`** — optional, used by collection (`agentpack collect`
+  and `watch --collect`): return the user-scope paths (files or directories)
+  that should be watched for natively-installed changes — typically the
+  agent's MCP config file and its skills directory. Paths do not need to
+  exist. Implementing `import` enables one-shot collection; adding
+  `nativeSources` enables continuous collection.
 
 The filesystem rule is absolute: **adapters return data; the shared installer
 (`packages/filesystem`) is the only code that writes.**

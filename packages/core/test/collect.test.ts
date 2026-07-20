@@ -216,7 +216,7 @@ describe("collectFromTarget", () => {
     expect(result.diagnostics.some((d) => d.severity === "error")).toBe(true);
   });
 
-  it("converts literal secret values to fromEnv references", async () => {
+  it("preserves literal secret values by default, with a warning", async () => {
     await writeWorkspace(tmp.dir);
     const adapter = collectingAdapter({
       mcpServers: {
@@ -233,6 +233,37 @@ describe("collectFromTarget", () => {
       createRegistry([adapter]),
       "claude",
       { homeDir: tmp.dir },
+    );
+    expect(result.newServers).toEqual(["freshserver"]);
+    const manifest = await readInboxManifest(tmp.dir);
+    expect(manifest.spec.mcpServers["freshserver"]?.env).toEqual({
+      "api-key": { value: "sk-abcdefghijklmnop123456" },
+    });
+    const warning = result.diagnostics.find(
+      (d) => d.severity === "warning" && d.message.includes("possible secret preserved as literal"),
+    );
+    expect(warning).toBeDefined();
+    expect(warning!.message).toContain("--env-refs");
+    expect(warning!.message).not.toContain("sk-abcdefghijklmnop123456");
+  });
+
+  it("converts literal secret values to fromEnv references with envRefs", async () => {
+    await writeWorkspace(tmp.dir);
+    const adapter = collectingAdapter({
+      mcpServers: {
+        freshserver: {
+          transport: "stdio",
+          command: "node",
+          enabled: true,
+          env: { "api-key": { value: "sk-abcdefghijklmnop123456" } },
+        },
+      },
+    });
+    const result = await collectFromTarget(
+      await loadWorkspace(tmp.dir),
+      createRegistry([adapter]),
+      "claude",
+      { homeDir: tmp.dir, envRefs: true },
     );
     expect(result.newServers).toEqual(["freshserver"]);
     const manifest = await readInboxManifest(tmp.dir);
