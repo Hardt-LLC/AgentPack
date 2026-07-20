@@ -7,7 +7,9 @@ export async function makeTempDir(prefix = "agentpack-test-"): Promise<{
   dir: string;
   cleanup: () => Promise<void>;
 }> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+  // realpath resolves macOS /var symlinks and Windows 8.3 short names so
+  // path comparisons in tests are stable.
+  const dir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), prefix)));
   return {
     dir,
     cleanup: () => fs.rm(dir, { recursive: true, force: true }),

@@ -15,7 +15,7 @@ import {
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-atomic-"));
+  tmpDir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-atomic-")));
 });
 
 afterEach(async () => {
@@ -36,16 +36,19 @@ describe("writeFileAtomic", () => {
     expect(names).toEqual(["f.txt"]);
   });
 
-  it("preserves the existing file mode when no mode is given", async () => {
-    const file = path.join(tmpDir, "run.sh");
-    await fs.writeFile(file, "old");
-    await fs.chmod(file, 0o755);
-    await writeFileAtomic(file, "new");
-    expect((await fs.stat(file)).mode & 0o777).toBe(0o755);
-    expect(await fs.readFile(file, "utf8")).toBe("new");
-  });
+  it.skipIf(process.platform === "win32")(
+    "preserves the existing file mode when no mode is given",
+    async () => {
+      const file = path.join(tmpDir, "run.sh");
+      await fs.writeFile(file, "old");
+      await fs.chmod(file, 0o755);
+      await writeFileAtomic(file, "new");
+      expect((await fs.stat(file)).mode & 0o777).toBe(0o755);
+      expect(await fs.readFile(file, "utf8")).toBe("new");
+    },
+  );
 
-  it("applies an explicit mode", async () => {
+  it.skipIf(process.platform === "win32")("applies an explicit mode", async () => {
     const file = path.join(tmpDir, "run.sh");
     await writeFileAtomic(file, "x", { mode: 0o700 });
     expect((await fs.stat(file)).mode & 0o777).toBe(0o700);

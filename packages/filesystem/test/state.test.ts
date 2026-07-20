@@ -16,7 +16,7 @@ import {
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-state-"));
+  tmpDir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-state-")));
 });
 
 afterEach(async () => {

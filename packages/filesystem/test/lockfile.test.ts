@@ -10,7 +10,7 @@ let tmpDir: string;
 let lockPath: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-lock-"));
+  tmpDir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-lock-")));
   lockPath = path.join(tmpDir, "agentpack.lock");
 });
 

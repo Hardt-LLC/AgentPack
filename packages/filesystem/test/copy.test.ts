@@ -15,7 +15,7 @@ import {
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-copy-"));
+  tmpDir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-copy-")));
 });
 
 afterEach(async () => {
@@ -34,7 +34,11 @@ describe("copyDirectory", () => {
     await copyDirectory(src, dest);
 
     expect(await fs.readFile(path.join(dest, "nested", "a.txt"), "utf8")).toBe("alpha");
-    expect((await fs.stat(path.join(dest, "run.sh"))).mode & 0o111).not.toBe(0);
+    if (process.platform !== "win32") {
+      expect((await fs.stat(path.join(dest, "run.sh"))).mode & 0o111).not.toBe(0);
+    } else {
+      expect(await fs.readFile(path.join(dest, "run.sh"), "utf8")).toBe("#!/bin/sh\n");
+    }
   });
 
   it("reproduces internal symlinks and refuses external ones", async () => {

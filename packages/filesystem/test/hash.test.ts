@@ -9,7 +9,7 @@ import { hashDirectory, hashFile, sha256 } from "../src/index.js";
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-hash-"));
+  tmpDir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-hash-")));
 });
 
 afterEach(async () => {

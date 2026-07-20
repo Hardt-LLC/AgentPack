@@ -69,7 +69,13 @@ export async function createSymlink(target: string, linkPath: string): Promise<v
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
   await ensureDir(path.dirname(linkPath));
-  const type = process.platform === "win32" ? "junction" : undefined;
+  // Windows junctions only work for directories; file targets need a real
+  // file symlink (may require privileges, unlike junctions).
+  let type: "junction" | undefined;
+  if (process.platform === "win32") {
+    const targetStat = await fs.stat(target).catch(() => undefined);
+    type = targetStat?.isDirectory() ? "junction" : undefined;
+  }
   await fs.symlink(target, linkPath, type);
 }
 

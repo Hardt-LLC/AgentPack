@@ -10,7 +10,7 @@ let tmpDir: string;
 let backupsDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-backup-"));
+  tmpDir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-backup-")));
   backupsDir = path.join(tmpDir, "backups");
 });
 

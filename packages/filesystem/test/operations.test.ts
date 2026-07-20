@@ -14,7 +14,7 @@ import {
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-ops-"));
+  tmpDir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "agentpack-ops-")));
 });
 
 afterEach(async () => {
@@ -109,7 +109,9 @@ describe("applyOperations", () => {
     ];
     await applyOperations(ops, { guardRemove: () => true });
 
-    expect((await fs.stat(p("out/run.sh"))).mode & 0o111).not.toBe(0);
+    if (process.platform !== "win32") {
+      expect((await fs.stat(p("out/run.sh"))).mode & 0o111).not.toBe(0);
+    }
     expect(JSON.parse(await fs.readFile(p("cfg.json"), "utf8"))).toEqual({
       mcpServers: { github: { c: 1 } },
     });
