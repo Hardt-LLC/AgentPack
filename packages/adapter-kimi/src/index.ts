@@ -3,7 +3,7 @@ import type { TargetAdapter } from "@agentpack/schema";
 import { analyzeKimi } from "./analyze.js";
 import { detectKimi } from "./detect.js";
 import { generateKimi } from "./generate.js";
-import { importKimi } from "./import.js";
+import { importKimi, nativeSourcesKimi } from "./import.js";
 import { planKimiInstall } from "./plan.js";
 
 /** Create a fresh Kimi Code target adapter instance. */
@@ -15,6 +15,7 @@ export function createKimiAdapter(): TargetAdapter {
     generate: generateKimi,
     planInstall: planKimiInstall,
     import: importKimi,
+    nativeSources: nativeSourcesKimi,
   };
 }
 

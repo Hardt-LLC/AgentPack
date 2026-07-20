@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import type { CanonicalInstruction, Scope } from "@agentpack/schema";
+import type { CanonicalInstruction, ImportContext, Scope } from "@agentpack/schema";
 import type { ArtifactRoot } from "@agentpack/schema";
 
 /**
@@ -68,4 +68,15 @@ export function nativeImportPaths(
     skillsDir: path.join(homeDir, ".claude", "skills"),
     settingsFile: path.join(homeDir, ".claude", "settings.json"),
   };
+}
+
+/**
+ * Native files/dirs that collect mode watches for user-scope changes.
+ * Paths are returned whether or not they exist.
+ */
+export function nativeSources(context: ImportContext): Promise<string[]> {
+  return Promise.resolve([
+    path.join(context.homeDir, ".claude.json"),
+    path.join(context.homeDir, ".claude", "skills"),
+  ]);
 }

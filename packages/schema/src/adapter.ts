@@ -161,6 +161,9 @@ export interface TargetAdapter {
 
   /** Optional importer: read native config into canonical form. */
   import?(context: ImportContext): Promise<ImportedConfiguration>;
+
+  /** Paths (files or dirs) that collect mode should watch for native changes. */
+  nativeSources?(context: ImportContext): Promise<string[]>;
 }
 
 /**

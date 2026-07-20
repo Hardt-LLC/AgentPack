@@ -466,6 +466,13 @@ export class CodexAdapter implements TargetAdapter {
     return ops;
   }
 
+  async nativeSources(context: ImportContext): Promise<string[]> {
+    return [
+      path.join(userConfigRoot(context.env, context.homeDir), "config.toml"),
+      path.join(context.homeDir, SKILLS_DIRNAME, "skills"),
+    ];
+  }
+
   async import(context: ImportContext): Promise<ImportedConfiguration> {
     const warnings: string[] = [];
     const mcpServers: ImportedConfiguration["mcpServers"] = {};

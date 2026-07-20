@@ -14,6 +14,7 @@ export * from "./diff.js";
 export * from "./remove.js";
 export * from "./build.js";
 export * from "./import.js";
+export * from "./collect.js";
 export * from "./doctor.js";
 export * from "./rollback.js";
 export * from "./gateway.js";

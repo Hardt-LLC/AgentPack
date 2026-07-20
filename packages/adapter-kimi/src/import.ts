@@ -259,6 +259,21 @@ async function importSkills(baseDirs: string[], warnings: string[]): Promise<Imp
   return out;
 }
 
+/* ----------------------------- Native sources ----------------------------- */
+
+/**
+ * Native files/dirs that collect mode watches for user-scope changes.
+ * Paths are returned whether or not they exist.
+ */
+export function nativeSourcesKimi(context: ImportContext): Promise<string[]> {
+  const kimiHome = resolveKimiHome(context.env, context.homeDir);
+  return Promise.resolve([
+    path.join(kimiHome, "mcp.json"),
+    path.join(kimiHome, "skills"),
+    path.join(context.homeDir, ".agents", "skills"),
+  ]);
+}
+
 /* -------------------------------- Import -------------------------------- */
 
 /** Read Kimi Code native config into canonical form. Never modifies it. */

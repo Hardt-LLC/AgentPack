@@ -2,6 +2,7 @@ import { Command, CommanderError } from "commander";
 import { redactSecrets } from "@agentpack/schema";
 
 import { registerBuild } from "./commands/build.js";
+import { registerCollect } from "./commands/collect.js";
 import { registerDiff } from "./commands/diff.js";
 import { registerDoctor } from "./commands/doctor.js";
 import { registerGateway } from "./commands/gateway.js";
@@ -36,6 +37,7 @@ registerDiff(program);
 registerDoctor(program);
 registerList(program);
 registerImport(program);
+registerCollect(program);
 registerRemove(program);
 registerRollback(program);
 registerUpdate(program);

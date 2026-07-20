@@ -25,6 +25,7 @@ interface WatchCommandOptions extends GlobalOptions {
   mode?: InstallMode;
   strictness?: Strictness;
   debounce?: string;
+  collect?: boolean;
   kimiPathStrategy?: string;
 }
 
@@ -39,6 +40,7 @@ export function registerWatch(program: Command): void {
     .addOption(modeOption())
     .addOption(strictnessOption())
     .option("--debounce <ms>", "debounce window in milliseconds", "400")
+    .option("--collect", "also collect native changes into packs/inbox-<target>")
     .addOption(kimiPathStrategyOption())
     .action(async (options: WatchCommandOptions) => {
       if (options.target && options.targets && options.targets.length > 0) {
@@ -63,6 +65,7 @@ export function registerWatch(program: Command): void {
         strictness: options.strictness,
         adapterOptions: adapterOptionsOf(options),
         debounceMs,
+        collect: options.collect === true,
         signal: abort.signal,
         onEvent: (event) => {
           const time = new Date().toISOString().slice(11, 19);
