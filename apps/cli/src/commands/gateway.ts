@@ -5,7 +5,7 @@ import { setupGateway, uninstallGateway } from "@agentpack/core";
 import type { Scope, TargetId } from "@agentpack/schema";
 
 import { loadCliWorkspace, type GlobalOptions } from "../context.js";
-import { CliError, ExitSignal } from "../errors.js";
+import { ExitSignal } from "../errors.js";
 import { parseTargetList, scopeOption } from "../options.js";
 import { err, out, printDiagnostics } from "../output.js";
 import { defaultRegistry } from "../registry.js";
@@ -20,8 +20,16 @@ interface GatewaySetupOptions extends GlobalOptions {
 /** Absolute path of the running CLI bundle, used in the gateway launcher. */
 function cliPath(): string {
   const argv1 = process.argv[1];
-  if (!argv1) throw new CliError("cannot determine CLI path for the gateway launcher", 2);
-  return path.resolve(argv1);
+  if (argv1 && argv1.endsWith(".mjs")) return path.resolve(argv1);
+  // Compiled single-file binary: the executable itself is the CLI.
+  return process.execPath;
+}
+
+/** Full launcher prefix for agent-spawned commands (gateway, hooks). */
+function launcherCommand(): string[] {
+  const argv1 = process.argv[1];
+  if (argv1 && argv1.endsWith(".mjs")) return [process.execPath, path.resolve(argv1)];
+  return [process.execPath];
 }
 
 export function registerGateway(program: Command): void {
@@ -75,6 +83,7 @@ export function registerGateway(program: Command): void {
         force: options.force,
         adopt: options.adopt,
         cliPath: cliPath(),
+        launcherCommand: launcherCommand(),
       });
       printDiagnostics(result.diagnostics);
       if (result.diagnostics.some((d) => d.severity === "error")) throw new ExitSignal(1);

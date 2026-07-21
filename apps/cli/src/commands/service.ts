@@ -4,14 +4,15 @@ import type { Command } from "commander";
 import { installService, serviceStatus, uninstallService } from "@agentpack/core";
 
 import { resolveWorkspaceRoot, type GlobalOptions } from "../context.js";
-import { CliError, ExitSignal } from "../errors.js";
+import { ExitSignal } from "../errors.js";
 import { err, out } from "../output.js";
 
 /** Absolute path of the running CLI bundle, used in the service definition. */
 function cliPath(): string {
   const argv1 = process.argv[1];
-  if (!argv1) throw new CliError("cannot determine CLI path for the service definition", 2);
-  return path.resolve(argv1);
+  if (argv1 && argv1.endsWith(".mjs")) return path.resolve(argv1);
+  // Compiled single-file binary: the executable itself is the CLI.
+  return process.execPath;
 }
 
 export function registerService(program: Command): void {

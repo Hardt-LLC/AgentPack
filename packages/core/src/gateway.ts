@@ -139,6 +139,12 @@ export interface GatewaySetupOptions extends SelectionOverrides {
   homeDir?: string;
   /** Absolute path of the agentpack CLI bundle used in the launcher. */
   cliPath: string;
+  /**
+   * Full launcher command prefix (e.g. ["/usr/local/bin/agentpack"] for a
+   * compiled binary, or ["node", "/path/cli.mjs"] for a JS bundle).
+   * Defaults to ["node", cliPath].
+   */
+  launcherCommand?: string[];
   /** Force overwrite of externally modified config keys. */
   force?: boolean;
   /**
@@ -179,9 +185,10 @@ export async function setupGateway(
 
   const gatewayName = workspace.manifest?.gateway?.name ?? "agentpack";
   const configPath = gatewayConfigPath(workspace.rootDir);
+  const launcherPrefix = opts.launcherCommand ?? ["node", opts.cliPath];
   const launcher = {
-    command: "node",
-    args: [opts.cliPath, "gateway", "run", "--config", configPath],
+    command: launcherPrefix[0]!,
+    args: [...launcherPrefix.slice(1), "gateway", "run", "--config", configPath],
   };
   const config = generateGatewayConfig(selection.packs, launcher);
   const serverCount = Object.keys(config.servers).length;

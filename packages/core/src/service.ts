@@ -91,15 +91,16 @@ function xmlEscape(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function serviceArgs(opts: InstallServiceOptions): string[] {
+  // When the CLI is a compiled single-file binary, cliPath === execPath and
+  // the binary itself is the launcher — don't prefix it with a runtime.
+  const launcher =
+    opts.cliPath === process.execPath ? [opts.cliPath] : [process.execPath, opts.cliPath];
+  return [...launcher, "watch", "--collect", "--workspace", opts.workspaceRoot];
+}
+
 function darwinPlist(opts: InstallServiceOptions, logPath: string): string {
-  const args = [
-    process.execPath,
-    opts.cliPath,
-    "watch",
-    "--collect",
-    "--workspace",
-    opts.workspaceRoot,
-  ];
+  const args = serviceArgs(opts);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -124,14 +125,7 @@ ${args.map((arg) => `\t\t<string>${xmlEscape(arg)}</string>`).join("\n")}
 }
 
 function linuxUnit(opts: InstallServiceOptions): string {
-  const execStart = [
-    process.execPath,
-    opts.cliPath,
-    "watch",
-    "--collect",
-    "--workspace",
-    opts.workspaceRoot,
-  ].join(" ");
+  const execStart = serviceArgs(opts).join(" ");
   return `[Unit]
 Description=AgentPack watch (collect + sync)
 

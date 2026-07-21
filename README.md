@@ -46,8 +46,21 @@ result into each agent's native configuration.
 
 ## Installation
 
-Prerequisites: **Node.js 20+** and **pnpm 9** (via Corepack, bundled with
-Node).
+**Standalone binary (no build, no Node.js required):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Hardt-LLC/AgentPack/main/install.sh | sh
+agentpack setup
+```
+
+The installer detects your OS/architecture (macOS arm64/x64, Linux x64/arm64),
+downloads the matching binary from
+[GitHub Releases](https://github.com/Hardt-LLC/AgentPack/releases), verifies
+its checksum, and installs it to `~/.local/bin` (or `/usr/local/bin` when
+writable). Windows: download `agentpack-windows-x64.exe` from Releases.
+Set `AGENTPACK_VERSION=v0.1.0` to pin a specific release.
+
+**From source** (prerequisites: Node.js 20+ and pnpm 9 via Corepack):
 
 ```bash
 git clone https://github.com/Hardt-LLC/AgentPack.git
