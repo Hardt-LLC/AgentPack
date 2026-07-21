@@ -49,6 +49,10 @@ export function aggregateTools(servers: ServerTools[]): Map<string, RoutedTool> 
       if (exposed.inputSchema !== undefined) {
         exposed.inputSchema = sanitizeSchema(exposed.inputSchema);
       }
+      // Strict client validators reject vendor keywords in outputSchema too.
+      if (typeof exposed["outputSchema"] === "object" && exposed["outputSchema"] !== null) {
+        exposed["outputSchema"] = sanitizeSchema(exposed["outputSchema"]);
+      }
       routed.set(publicName, {
         server: entry.server,
         toolName: tool.name,

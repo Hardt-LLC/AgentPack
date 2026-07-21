@@ -47,10 +47,30 @@ describe("sanitizeSchema", () => {
         count: { type: "integer", format: "int32" },
         when: { type: "string", format: "date-time" },
       },
-    }) as Record<string, Record<string, Record<string, unknown>>>;
-    expect(clean["properties"]?.["count"]?.["format"]).toBeUndefined();
-    expect(clean["properties"]?.["count"]?.["type"]).toBe("integer");
-    expect(clean["properties"]?.["when"]?.["format"]).toBe("date-time");
+    }) as unknown as { properties: Record<string, Record<string, unknown>> };
+    expect(clean.properties["count"]?.["format"]).toBeUndefined();
+    expect(clean.properties["count"]?.["type"]).toBe("integer");
+    expect(clean.properties["when"]?.["format"]).toBe("date-time");
+  });
+
+  it("repairs dangling root-local $refs and keeps valid ones", () => {
+    const clean = sanitizeSchema({
+      type: "object",
+      properties: {
+        broken: { $ref: "#/$defs/ScreenInstance" },
+        works: { $ref: "#/$defs/Real" },
+        external: { $ref: "https://example.com/schema.json#/$defs/X" },
+      },
+      $defs: { Real: { type: "string" } },
+    }) as unknown as {
+      properties: Record<string, unknown>;
+    };
+    // Lone dangling $ref collapses to `true`.
+    expect(clean.properties["broken"]).toBe(true);
+    expect(clean.properties["works"]).toEqual({ $ref: "#/$defs/Real" });
+    expect(clean.properties["external"]).toEqual({
+      $ref: "https://example.com/schema.json#/$defs/X",
+    });
   });
 
   it("aggregateTools sanitizes exposed inputSchemas", () => {
@@ -61,6 +81,10 @@ describe("sanitizeSchema", () => {
           {
             name: "make",
             inputSchema: { type: "object", "x-google-identifier": "x" } as Record<string, unknown>,
+            outputSchema: { type: "object", "x-google-enum-deprecated": [true] } as Record<
+              string,
+              unknown
+            >,
           },
         ],
       },
@@ -68,5 +92,8 @@ describe("sanitizeSchema", () => {
     const tool = routed.get("stitch__make")!;
     expect(tool.exposed.inputSchema?.["x-google-identifier"]).toBeUndefined();
     expect(tool.exposed.inputSchema?.["type"]).toBe("object");
+    const out = tool.exposed["outputSchema"] as Record<string, unknown>;
+    expect(out["x-google-enum-deprecated"]).toBeUndefined();
+    expect(out["type"]).toBe("object");
   });
 });
