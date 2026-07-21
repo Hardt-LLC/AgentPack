@@ -6,6 +6,9 @@ export default defineConfig({
   platform: "node",
   target: "node20",
   outExtension: () => ({ js: ".mjs" }),
+  define: {
+    __AGENTPACK_VERSION__: JSON.stringify(process.env.npm_package_version ?? "0.0.0-dev"),
+  },
   banner: {
     // createRequire shim: bundled CJS deps (commander) call require() for
     // node builtins, which plain ESM output does not provide.

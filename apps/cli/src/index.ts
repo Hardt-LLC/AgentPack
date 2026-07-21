@@ -23,12 +23,17 @@ import { registerValidate } from "./commands/validate.js";
 import { registerWatch } from "./commands/watch.js";
 import { CliError, ExitSignal } from "./errors.js";
 
+// Injected by tsup `define` from apps/cli/package.json at build time.
+declare const __AGENTPACK_VERSION__: string | undefined;
+const VERSION =
+  typeof __AGENTPACK_VERSION__ !== "undefined" ? __AGENTPACK_VERSION__ : "0.0.0-dev";
+
 const program = new Command();
 
 program
   .name("agentpack")
   .description("Cross-agent extension package manager (targets: codex, claude, kimi)")
-  .version("0.1.0")
+  .version(VERSION)
   .option("--workspace <dir>", "workspace root (default: nearest agentpack.yaml)")
   .exitOverride();
 
