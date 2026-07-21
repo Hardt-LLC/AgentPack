@@ -82,6 +82,29 @@ claude and kimi.
 - \`agentpack build\` — emit plugin bundles into \`dist/\`
 `;
 
+/**
+ * Create a new AgentPack workspace at `root` (scaffold files only).
+ * Returns the list of written relative paths. Shared with `agentpack setup`.
+ */
+export async function createWorkspace(root: string): Promise<string[]> {
+  const files: Record<string, string> = {
+    "agentpack.yaml": WORKSPACE_YAML,
+    "packs/example/pack.yaml": PACK_YAML,
+    "packs/example/skills/example/SKILL.md": SKILL_MD,
+    "packs/example/instructions/example.md": INSTRUCTION_MD,
+    ".gitignore": GITIGNORE,
+    "README.md": README_MD,
+  };
+
+  await fs.mkdir(root, { recursive: true });
+  for (const [rel, content] of Object.entries(files)) {
+    const dest = path.join(root, rel);
+    await fs.mkdir(path.dirname(dest), { recursive: true });
+    await fs.writeFile(dest, content, "utf8");
+  }
+  return Object.keys(files);
+}
+
 export function registerInit(program: Command): void {
   program
     .command("init [dir]")
@@ -92,24 +115,10 @@ export function registerInit(program: Command): void {
         throw new CliError(`agentpack.yaml already exists in ${root}`, 2);
       }
 
-      const files: Record<string, string> = {
-        "agentpack.yaml": WORKSPACE_YAML,
-        "packs/example/pack.yaml": PACK_YAML,
-        "packs/example/skills/example/SKILL.md": SKILL_MD,
-        "packs/example/instructions/example.md": INSTRUCTION_MD,
-        ".gitignore": GITIGNORE,
-        "README.md": README_MD,
-      };
-
-      await fs.mkdir(root, { recursive: true });
-      for (const [rel, content] of Object.entries(files)) {
-        const dest = path.join(root, rel);
-        await fs.mkdir(path.dirname(dest), { recursive: true });
-        await fs.writeFile(dest, content, "utf8");
-      }
+      const written = await createWorkspace(root);
 
       out(`Created AgentPack workspace in ${root}:`);
-      for (const rel of Object.keys(files)) out(`  - ${rel}`);
+      for (const rel of written) out(`  - ${rel}`);
       out("");
       out("Next: run `agentpack validate`, then `agentpack sync`.");
     });

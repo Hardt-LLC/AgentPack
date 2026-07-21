@@ -22,6 +22,7 @@ import {
 } from "@agentpack/filesystem";
 import type { AdapterRegistry } from "./registry.js";
 import { parsePackManifest, WORKSPACE_FILE, type LoadWorkspaceResult } from "./load-workspace.js";
+import { toEnvVarName } from "./setup-wizard.js";
 
 /**
  * Native change collection: when a user installs MCP servers or skills
@@ -82,11 +83,6 @@ function sanitizeServerName(name: string, taken: Set<string>): string | undefine
   let candidate = base;
   for (let i = 2; taken.has(candidate); i += 1) candidate = `${base}-${i}`;
   return candidate;
-}
-
-/** Convert a header/env key into an environment variable name. */
-function toEnvVarName(key: string): string {
-  return key.toUpperCase().replace(/[^A-Z0-9]/g, "_");
 }
 
 /**

@@ -65,6 +65,16 @@ above, is currently the only install path.
 
 ## Quickstart (5 minutes)
 
+The fastest path is the interactive wizard — it detects your agents, imports
+existing config, lets you curate what to keep, syncs, and installs background
+automation in one go:
+
+```bash
+agentpack setup        # interactive; --yes accepts all defaults (CI/scripts)
+```
+
+Prefer to drive each step yourself? Read on.
+
 ```bash
 # 1. Create a workspace anywhere (your extensions repo)
 mkdir my-extensions && cd my-extensions
@@ -207,6 +217,7 @@ Commands:
 | Command                                 | What it does                                                                                                                                                                                                                                                                                                                                                                |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `agentpack init`                        | Scaffold `agentpack.yaml` and a starter `packs/` layout.                                                                                                                                                                                                                                                                                                                    |
+| `agentpack setup`                       | Interactive onboarding wizard: workspace creation, agent detection, import, curation, secrets policy, profile, trust, sync, gateway, background service, and session hook — in one guided pass. `--yes` accepts all defaults (required on non-TTY).                                                                                                                         |
 | `agentpack validate`                    | Full workspace validation: schemas, skills, duplicates, MCP env references, capability analysis. Fails (exit 1) on any error.                                                                                                                                                                                                                                               |
 | `agentpack plan`                        | Print the side-effect-free execution plan per target: operations, capability findings, install strategy.                                                                                                                                                                                                                                                                    |
 | `agentpack sync`                        | Apply the plan: trust gate → conflict check → backup → apply → record ownership. Flags: `--dry-run`, `--force`, `--trust <pack>` (repeatable), `--adopt` (adopt unmanaged paths blocking planned creates), `--kimi-path-strategy shared\|kimi`.                                                                                                                             |

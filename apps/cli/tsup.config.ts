@@ -20,6 +20,7 @@ export default defineConfig({
     "@agentpack/adapter-claude",
     "@agentpack/adapter-kimi",
     "@agentpack/gateway",
+    "@clack/prompts",
     "commander",
     "yaml",
     "zod",

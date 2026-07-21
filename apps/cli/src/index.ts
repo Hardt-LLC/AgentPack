@@ -15,6 +15,7 @@ import { registerPromote } from "./commands/promote.js";
 import { registerRemove } from "./commands/remove.js";
 import { registerRollback } from "./commands/rollback.js";
 import { registerService } from "./commands/service.js";
+import { registerSetup } from "./commands/setup.js";
 import { registerSync } from "./commands/sync.js";
 import { registerUninstall } from "./commands/uninstall.js";
 import { registerUpdate } from "./commands/update.js";
@@ -48,6 +49,7 @@ registerUpdate(program);
 registerWatch(program);
 registerGateway(program);
 registerService(program);
+registerSetup(program);
 registerHooks(program);
 registerUninstall(program);
 

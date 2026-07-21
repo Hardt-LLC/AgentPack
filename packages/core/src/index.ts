@@ -24,3 +24,4 @@ export * from "./gateway.js";
 export * from "./watch.js";
 export * from "./adopt.js";
 export * from "./uninstall.js";
+export * from "./setup-wizard.js";
