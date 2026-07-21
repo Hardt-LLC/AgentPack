@@ -1,6 +1,8 @@
 /**
  * Shared downstream contract plus tool namespacing / filtering / routing.
  */
+import { sanitizeSchema } from "./sanitize.js";
+
 export interface McpTool {
   name: string;
   description?: string;
@@ -43,10 +45,14 @@ export function aggregateTools(servers: ServerTools[]): Map<string, RoutedTool> 
       if (entry.allowTools !== undefined && !entry.allowTools.includes(tool.name)) continue;
       if (entry.denyTools !== undefined && entry.denyTools.includes(tool.name)) continue;
       const publicName = `${entry.server}${TOOL_NAMESPACE_SEPARATOR}${tool.name}`;
+      const exposed: McpTool = { ...tool, name: publicName };
+      if (exposed.inputSchema !== undefined) {
+        exposed.inputSchema = sanitizeSchema(exposed.inputSchema);
+      }
       routed.set(publicName, {
         server: entry.server,
         toolName: tool.name,
-        exposed: { ...tool, name: publicName },
+        exposed,
       });
     }
   }

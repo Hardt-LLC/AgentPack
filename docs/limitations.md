@@ -86,6 +86,12 @@ things, both texts land in the file and the model sees both.
 
 ## Gateway limitations
 
+- **Schema sanitization**: to survive strict JSON Schema validators in some
+  clients, the gateway strips vendor extension keywords (`x-*`) and
+  non-standard `format` values (e.g. protobuf-style `int32`) from tool
+  `inputSchema`s during aggregation. Both are annotation-only, so tool
+  behavior is unaffected.
+
 - **Tools are namespaced.** Agents see `server__tool` (e.g.
   `github__create_issue`), not the original tool names. Agent prompts or
   skills that reference unprefixed tool names need adjusting.

@@ -22,3 +22,4 @@ export {
   type RoutedTool,
 } from "./aggregate.js";
 export { redactSecrets } from "./redact.js";
+export * from "./sanitize.js";
