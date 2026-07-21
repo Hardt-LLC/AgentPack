@@ -9,3 +9,4 @@ export * from "./backup.js";
 export * from "./state.js";
 export * from "./lockfile.js";
 export * from "./operations.js";
+export * from "./yaml-merge.js";

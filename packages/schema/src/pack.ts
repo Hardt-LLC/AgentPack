@@ -163,23 +163,9 @@ export const packManifestSchema = z
         mcpServers: z.record(nameSchema, mcpServerSchema).default({}),
         hooks: z.array(hookSchema).default([]),
         plugin: pluginSchema.optional(),
-        targets: z
-          .object({
-            codex: targetToggleSchema.optional(),
-            claude: targetToggleSchema.optional(),
-            kimi: targetToggleSchema.optional(),
-          })
-          .strict()
-          .optional(),
+        targets: z.record(targetIdSchema, targetToggleSchema).optional(),
         /** Unknown fields per target are retained and passed to that adapter only. */
-        extensions: z
-          .object({
-            codex: z.record(z.string(), z.unknown()).optional(),
-            claude: z.record(z.string(), z.unknown()).optional(),
-            kimi: z.record(z.string(), z.unknown()).optional(),
-          })
-          .strict()
-          .optional(),
+        extensions: z.record(targetIdSchema, z.record(z.string(), z.unknown())).optional(),
       })
       .strict(),
   })

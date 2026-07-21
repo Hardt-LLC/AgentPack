@@ -39,7 +39,7 @@ export async function validateWorkspace(
   const diagnostics: Diagnostic[] = [...workspace.diagnostics];
   for (const pack of workspace.packs) diagnostics.push(...pack.diagnostics);
 
-  const selection = resolveSelection(workspace, opts, TARGET_IDS);
+  const selection = resolveSelection(workspace, opts, registry.ids());
   diagnostics.push(...selection.diagnostics);
   const env = opts.env ?? process.env;
 

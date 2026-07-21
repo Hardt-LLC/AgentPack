@@ -94,7 +94,7 @@ export async function adoptDuplicateMcpServers(
   const adoptedOut: AdoptKeysResult["adopted"] = [];
   const skipped: AdoptKeysResult["skipped"] = [];
   const canonical = new Set(canonicalServerNames.map((n) => n.toLowerCase()));
-  const selection = resolveSelection(workspace, opts, TARGET_IDS);
+  const selection = resolveSelection(workspace, opts, registry.ids());
   const env = opts.env ?? process.env;
   const state = await loadState(workspace.rootDir);
   const detected = await detectTargets(registry, workspace.rootDir, {

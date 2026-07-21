@@ -180,7 +180,7 @@ export async function setupGateway(
   opts: GatewaySetupOptions,
 ): Promise<GatewaySetupResult> {
   const diagnostics: Diagnostic[] = [];
-  const selection = resolveSelection(workspace, opts, TARGET_IDS);
+  const selection = resolveSelection(workspace, opts, registry.ids());
   diagnostics.push(...selection.diagnostics);
 
   const gatewayName = workspace.manifest?.gateway?.name ?? "agentpack";
@@ -389,7 +389,7 @@ export async function uninstallGateway(
   const state = await loadState(workspace.rootDir);
   const launcher = await readGatewayLauncher(workspace.rootDir);
   const gatewayName = workspace.manifest?.gateway?.name ?? "agentpack";
-  const selection = resolveSelection(workspace, opts, TARGET_IDS);
+  const selection = resolveSelection(workspace, opts, registry.ids());
 
   for (const target of selection.targets) {
     const targetState = state.targets[target];

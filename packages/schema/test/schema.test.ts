@@ -135,7 +135,8 @@ describe("pack manifest", () => {
       spec: { extensions: { claude: { agents: [{ name: "a", anything: true }] } } },
     };
     const parsed = packManifestSchema.parse(manifest);
-    expect(parsed.spec.extensions?.claude?.["agents"]).toEqual([{ name: "a", anything: true }]);
+    const claudeExt = parsed.spec.extensions?.["claude"];
+    expect(claudeExt?.["agents"]).toEqual([{ name: "a", anything: true }]);
   });
 });
 

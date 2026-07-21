@@ -1,9 +1,47 @@
 import { z } from "zod";
 
 /** Known target agent identifiers. */
-export const targetIdSchema = z.enum(["codex", "claude", "kimi"]);
+export const targetIdSchema = z.enum([
+  "codex",
+  "claude",
+  "kimi",
+  "cursor",
+  "windsurf",
+  "cline",
+  "roo",
+  "kilo",
+  "copilot-vscode",
+  "copilot-cli",
+  "gemini",
+  "antigravity",
+  "opencode",
+  "openclaw",
+  "pi",
+  "hermes",
+  "vibe",
+  "droid",
+]);
 export type TargetId = z.infer<typeof targetIdSchema>;
-export const TARGET_IDS: readonly TargetId[] = ["codex", "claude", "kimi"];
+export const TARGET_IDS: readonly TargetId[] = [
+  "codex",
+  "claude",
+  "kimi",
+  "cursor",
+  "windsurf",
+  "cline",
+  "roo",
+  "kilo",
+  "copilot-vscode",
+  "copilot-cli",
+  "gemini",
+  "antigravity",
+  "opencode",
+  "openclaw",
+  "pi",
+  "hermes",
+  "vibe",
+  "droid",
+];
 
 /** How well a target supports a component. */
 export type CapabilitySupport = "native" | "transpiled" | "degraded" | "unsupported";

@@ -84,7 +84,7 @@ export async function buildPlan(
   const env = opts.env ?? process.env;
   const platform = opts.platform ?? process.platform;
 
-  const selection = resolveSelection(workspace, opts, TARGET_IDS);
+  const selection = resolveSelection(workspace, opts, registry.ids());
   diagnostics.push(...selection.diagnostics);
 
   const strategy = resolveInstallStrategy(selection.installMode, platform);

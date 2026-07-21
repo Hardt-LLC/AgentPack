@@ -6,11 +6,13 @@ import { hashDirectory } from "./hash.js";
 import { mergeJsonAtPointer } from "./json-merge.js";
 import { upsertManagedSection } from "./markdown-section.js";
 import { mergeTomlAtTable } from "./toml-merge.js";
+import { mergeYamlAtPointer } from "./yaml-merge.js";
 
 export type InstallOperation =
   | { type: "writeFile"; path: string; content: string; executable?: boolean }
   | { type: "mergeJson"; path: string; pointer: string; value: unknown }
   | { type: "mergeToml"; path: string; table: string[]; value: unknown }
+  | { type: "mergeYaml"; path: string; pointer: string; value: unknown }
   | {
       type: "managedMarkdownSection";
       path: string;
@@ -39,6 +41,8 @@ export function describeOperation(op: InstallOperation): string {
       return `merge JSON at ${op.pointer} in ${op.path}`;
     case "mergeToml":
       return `merge TOML table [${op.table.join(".")}] in ${op.path}`;
+    case "mergeYaml":
+      return `merge YAML at ${op.pointer} in ${op.path}`;
     case "managedMarkdownSection":
       return `upsert managed section "${op.sectionId}" in ${op.path}`;
     case "createSymlink":
@@ -86,6 +90,16 @@ async function planOne(op: InstallOperation): Promise<PlannedOperation> {
         "update",
         `update [${op.table.join(".")}] in ${op.path} (content differs)`,
       );
+    }
+    case "mergeYaml": {
+      const existing = await readFileIfExists(op.path);
+      const merged = mergeYamlAtPointer(existing, op.pointer, op.value);
+      if (existing === undefined) {
+        return planned(op, "create", `create ${op.path} with ${op.pointer}`);
+      }
+      if (merged === existing)
+        return planned(op, "noop", `${op.pointer} in ${op.path} is up to date`);
+      return planned(op, "update", `update ${op.pointer} in ${op.path} (content differs)`);
     }
     case "managedMarkdownSection": {
       const existing = await readFileIfExists(op.path);
@@ -170,6 +184,11 @@ export async function applyOperations(
       case "mergeToml": {
         const existing = await readFileIfExists(op.path);
         await writeFileAtomic(op.path, mergeTomlAtTable(existing, op.table, op.value));
+        break;
+      }
+      case "mergeYaml": {
+        const existing = await readFileIfExists(op.path);
+        await writeFileAtomic(op.path, mergeYamlAtPointer(existing, op.pointer, op.value));
         break;
       }
       case "managedMarkdownSection": {

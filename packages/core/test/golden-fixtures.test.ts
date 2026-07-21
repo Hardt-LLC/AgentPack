@@ -60,7 +60,7 @@ const FIXTURES_ROOT = path.resolve(
 
 const UPDATE = process.env.AGENTPACK_UPDATE_FIXTURES === "1";
 
-const ADAPTERS: Record<TargetId, TargetAdapter> = {
+const ADAPTERS: Partial<Record<TargetId, TargetAdapter>> = {
   codex: codexAdapter,
   claude: claudeAdapter,
   kimi: kimiAdapter,
@@ -263,7 +263,7 @@ async function loadFixturePack(fixture: Fixture) {
 /** Operations mode: fixed placeholder roots, no filesystem output. */
 async function runOperationsFixture(fixture: Fixture): Promise<void> {
   const pack = await loadFixturePack(fixture);
-  const adapter = ADAPTERS[fixture.target];
+  const adapter = ADAPTERS[fixture.target]!;
   const ws = "/workspace";
   const home = "/home/user";
 
@@ -287,7 +287,7 @@ async function runOperationsFixture(fixture: Fixture): Promise<void> {
 /** Tree mode: apply operations into a tmp dir, compare the file tree. */
 async function runTreeFixture(fixture: Fixture): Promise<void> {
   const pack = await loadFixturePack(fixture);
-  const adapter = ADAPTERS[fixture.target];
+  const adapter = ADAPTERS[fixture.target]!;
   const isBundle = fixture.category === "plugin-bundle";
 
   const tmp = await makeTempDir();
@@ -331,7 +331,7 @@ async function runTreeFixture(fixture: Fixture): Promise<void> {
 /** Report mode: golden capability analysis. */
 async function runReportFixture(fixture: Fixture): Promise<void> {
   const pack = await loadFixturePack(fixture);
-  const adapter = ADAPTERS[fixture.target];
+  const adapter = ADAPTERS[fixture.target]!;
   const report = await adapter.analyze(
     pack,
     adapterContext(fixture.target, "/workspace", "/home/user"),
@@ -364,7 +364,7 @@ describe("golden fixtures", () => {
     for (const target of Object.keys(ADAPTERS) as TargetId[]) {
       const dir = path.join(FIXTURES_ROOT, target, "plugin-bundle");
       const { pack } = await loadPack(path.join(dir, "input"));
-      const adapter = ADAPTERS[target];
+      const adapter = ADAPTERS[target]!;
       const build = async () => {
         const artifacts = await adapter.generate(
           pack!,
@@ -409,7 +409,7 @@ describe("golden fixtures", () => {
     for (const target of Object.keys(ADAPTERS) as TargetId[]) {
       const dir = path.join(FIXTURES_ROOT, target, "env-secret-reference");
       const { pack } = await loadPack(path.join(dir, "input"));
-      const adapter = ADAPTERS[target];
+      const adapter = ADAPTERS[target]!;
       const tmp = await makeTempDir();
       try {
         const ws = path.join(tmp.dir, "ws");
