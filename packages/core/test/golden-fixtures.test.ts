@@ -167,6 +167,13 @@ function serializeOperations(
           table: op.table,
           value: op.value,
         };
+      case "mergeYaml":
+        return {
+          type: op.type,
+          path: normalizePath(op.path, roots),
+          pointer: op.pointer,
+          value: op.value,
+        };
       case "managedMarkdownSection":
         return {
           type: op.type,

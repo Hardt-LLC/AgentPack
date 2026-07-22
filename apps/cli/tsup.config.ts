@@ -22,6 +22,7 @@ export default defineConfig({
     "@agentpack/adapter-codex",
     "@agentpack/adapter-claude",
     "@agentpack/adapter-kimi",
+    "@agentpack/adapter-ext",
     "@agentpack/gateway",
     "@clack/prompts",
     "commander",

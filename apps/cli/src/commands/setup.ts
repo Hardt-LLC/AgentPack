@@ -183,7 +183,8 @@ async function runSetup(global: GlobalOptions, yes: boolean, steps: Steps): Prom
   /* --------------------------- 3. detection ----------------------------- */
 
   const detected = await detectTargets(registry, root, {});
-  const detectionLines = TARGET_IDS.map(
+  const registeredTargets = TARGET_IDS.filter((target) => registry.has(target));
+  const detectionLines = registeredTargets.map(
     (target) =>
       `${target}: ${
         detected[target]?.installed
@@ -195,7 +196,9 @@ async function runSetup(global: GlobalOptions, yes: boolean, steps: Steps): Prom
 
   /* ----------------------------- 4. import ------------------------------ */
 
-  const importable = TARGET_IDS.filter((target) => registry.get(target).import !== undefined);
+  const importable = TARGET_IDS.filter(
+    (target) => registry.has(target) && registry.get(target).import !== undefined,
+  );
   const detectedTargets = importable.filter((target) => detected[target]?.installed);
   const importTargets =
     importable.length === 0

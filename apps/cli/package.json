@@ -13,6 +13,7 @@
   "dependencies": {
     "@agentpack/adapter-claude": "workspace:*",
     "@agentpack/adapter-codex": "workspace:*",
+    "@agentpack/adapter-ext": "workspace:*",
     "@agentpack/adapter-kimi": "workspace:*",
     "@agentpack/core": "workspace:*",
     "@agentpack/filesystem": "workspace:*",

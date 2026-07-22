@@ -175,6 +175,7 @@ export type InstallOperationLike =
   | { type: "writeFile"; path: string; content: string; executable?: boolean }
   | { type: "mergeJson"; path: string; pointer: string; value: unknown }
   | { type: "mergeToml"; path: string; table: string[]; value: unknown }
+  | { type: "mergeYaml"; path: string; pointer: string; value: unknown }
   | {
       type: "managedMarkdownSection";
       path: string;
