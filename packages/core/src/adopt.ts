@@ -1,7 +1,6 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import {
-  TARGET_IDS,
   type Diagnostic,
   type GeneratedArtifact,
   type Scope,

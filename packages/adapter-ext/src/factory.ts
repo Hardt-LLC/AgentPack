@@ -26,6 +26,7 @@ import type {
   TargetId,
 } from "@agentpack/schema";
 import { renderEnvRecord } from "@agentpack/schema";
+import { parse as parseToml } from "smol-toml";
 import { parse as parseYaml } from "yaml";
 
 const execFileAsync = promisify(execFile);
@@ -51,9 +52,13 @@ export interface SimpleAdapterSpec {
   /**
    * Skill install directories. Omit the whole field when the target has no
    * skills concept (analyze reports "unsupported"); omit `user` when only a
-   * project-scope skills directory is documented.
+   * project-scope skills directory is documented. The user function also
+   * receives the environment so specs can honor config-root env overrides.
    */
-  skills?: { user?: (home: string) => string; project: (root: string) => string };
+  skills?: {
+    user?: (home: string, env: Record<string, string | undefined>) => string;
+    project?: (root: string) => string;
+  };
   /** Remediation used when skills are unsupported (spec.skills undefined). */
   skillsUnsupportedRemediation?: string;
   mcp: {
@@ -61,8 +66,9 @@ export interface SimpleAdapterSpec {
     user: (ctx: AdapterContext) => string;
     /** Absolute MCP config file for the project scope; undefined = unsupported. */
     project?: (ctx: AdapterContext) => string;
-    /** json → mergeJson; yaml → mergeYaml (the YAML engine also parses JSONC). */
-    format: "json" | "yaml";
+    /** json → mergeJson; yaml → mergeYaml (the YAML engine also parses JSONC);
+     *  toml → mergeToml with topKey as the table path. */
+    format: "json" | "yaml" | "toml";
     /** Pointer segments above the server name, e.g. ["mcpServers"] or ["mcp"]. */
     topKey: string[];
     /** Native entry shape for one canonical server. */
@@ -212,6 +218,12 @@ export interface ServerShapeOptions {
   envRef: EnvRefFormat;
   /** Key carrying the server URL; default "url". */
   urlKey?: "url" | "serverUrl";
+  /**
+   * Key carrying the URL of HTTP-transport entries when it differs from the
+   * SSE key (e.g. Gemini CLI uses "httpUrl" for HTTP and "url" for SSE).
+   * On import, the presence of this key implies the http transport.
+   */
+  httpUrlKey?: string;
   /** Explicit "type" value for stdio entries (omitted when undefined). */
   stdioType?: string;
   /** Explicit "type" value for http entries (omitted when undefined). */
@@ -220,6 +232,11 @@ export interface ServerShapeOptions {
   sseType?: string;
   /** Include `cwd` on stdio entries. */
   cwd?: boolean;
+  /**
+   * Key carrying the transport on entries that use "transport" instead of
+   * "type" (e.g. OpenClaw, Mistral Vibe). raw.type is still read first.
+   */
+  transportKey?: string;
   /**
    * Transport assumed for URL entries without an explicit "type" on import.
    * When undefined, a typeless URL entry is skipped.
@@ -247,7 +264,11 @@ export function buildServerValue(
   } else {
     const type = server.transport === "http" ? options.httpType : options.sseType;
     if (type) out.type = type;
-    out[options.urlKey ?? "url"] = server.url;
+    const key =
+      server.transport === "http" && options.httpUrlKey
+        ? options.httpUrlKey
+        : (options.urlKey ?? "url");
+    out[key] = server.url;
     const headers = renderEnv(server.headers, options.envRef);
     if (headers) out.headers = headers;
   }
@@ -285,19 +306,29 @@ export function parseNativeServer(
   }
 
   const urlKey = options.urlKey ?? "url";
-  const url =
+  const httpUrl =
+    options.httpUrlKey && typeof raw[options.httpUrlKey] === "string"
+      ? (raw[options.httpUrlKey] as string)
+      : undefined;
+  const plainUrl =
     typeof raw[urlKey] === "string"
       ? (raw[urlKey] as string)
       : typeof raw.url === "string"
         ? raw.url
         : undefined;
+  const url = httpUrl ?? plainUrl;
   if (url) {
-    const type = typeof raw.type === "string" ? raw.type : undefined;
+    const type =
+      typeof raw.type === "string"
+        ? raw.type
+        : options.transportKey && typeof raw[options.transportKey] === "string"
+          ? (raw[options.transportKey] as string)
+          : undefined;
     let transport: "http" | "sse" | undefined;
     if (type !== undefined && type === options.httpType) transport = "http";
     else if (type !== undefined && type === options.sseType) transport = "sse";
     else if (type === "http" || type === "sse") transport = type;
-    else if (type === undefined) transport = options.defaultRemoteTransport;
+    else if (type === undefined) transport = httpUrl ? "http" : options.defaultRemoteTransport;
     if (!transport) return undefined;
     const spec: Record<string, unknown> = { transport, url, enabled };
     const headers = envRecordFromNative(raw.headers);
@@ -311,6 +342,27 @@ export function parseNativeServer(
 /* --------------------------- VS Code paths ---------------------------- */
 
 /**
+ * User-data directory of a VS Code installation (stable "Code" variant;
+ * Insiders uses "Code - Insiders", VSCodium "VSCodium" — noted where
+ * relevant).
+ */
+export function vscodeUserDir(ctx: {
+  env: Record<string, string | undefined>;
+  homeDir: string;
+  platform?: NodeJS.Platform;
+}): string {
+  const platform = ctx.platform ?? process.platform;
+  if (platform === "darwin") {
+    return path.join(ctx.homeDir, "Library", "Application Support", "Code", "User");
+  }
+  if (platform === "win32") {
+    const appData = ctx.env.APPDATA ?? path.join(ctx.homeDir, "AppData", "Roaming");
+    return path.join(appData, "Code", "User");
+  }
+  return path.join(ctx.homeDir, ".config", "Code", "User");
+}
+
+/**
  * globalStorage directory of a VS Code extension (stable "Code" variant;
  * Insiders/VSCodium use different parent dirs — noted where relevant).
  */
@@ -322,23 +374,7 @@ export function vscodeGlobalStorage(
   },
   extensionId: string,
 ): string {
-  const platform = ctx.platform ?? process.platform;
-  if (platform === "darwin") {
-    return path.join(
-      ctx.homeDir,
-      "Library",
-      "Application Support",
-      "Code",
-      "User",
-      "globalStorage",
-      extensionId,
-    );
-  }
-  if (platform === "win32") {
-    const appData = ctx.env.APPDATA ?? path.join(ctx.homeDir, "AppData", "Roaming");
-    return path.join(appData, "Code", "User", "globalStorage", extensionId);
-  }
-  return path.join(ctx.homeDir, ".config", "Code", "User", "globalStorage", extensionId);
+  return path.join(vscodeUserDir(ctx), "globalStorage", extensionId);
 }
 
 /* ------------------------------- Detect ------------------------------- */
@@ -448,6 +484,15 @@ function makeAnalyze(spec: SimpleAdapterSpec): TargetAdapter["analyze"] {
           support: "unsupported",
           message: `${spec.id} has no documented user-scope skills directory`,
           remediation: "sync skills at project scope instead",
+        });
+      } else if (context.scope === "project" && !spec.skills.project) {
+        findings.push({
+          target: spec.id,
+          componentType: "skill",
+          componentId: skill.name,
+          support: "unsupported",
+          message: `${spec.id} has no documented project-scope skills directory`,
+          remediation: "sync skills at user scope instead",
         });
       } else {
         findings.push({
@@ -566,7 +611,11 @@ function makeGenerate(spec: SimpleAdapterSpec): TargetAdapter["generate"] {
     const root = context.scope === "project" ? "projectConfig" : "userConfig";
     const artifacts: GeneratedArtifact[] = [];
 
-    if (spec.skills && !(context.scope === "user" && !spec.skills.user)) {
+    if (
+      spec.skills &&
+      !(context.scope === "user" && !spec.skills.user) &&
+      !(context.scope === "project" && !spec.skills.project)
+    ) {
       for (const skill of pack.skills) {
         artifacts.push({
           kind: "skill",
@@ -583,16 +632,26 @@ function makeGenerate(spec: SimpleAdapterSpec): TargetAdapter["generate"] {
     if (mcpPath) {
       for (const server of Object.values(pack.mcpServers)) {
         if (server.enabled === false) continue;
-        const pointer = `/${[...spec.mcp.topKey, server.name].map(escapePointerSegment).join("/")}`;
-        artifacts.push({
-          kind: "json-merge",
-          root,
-          // Informational only: planInstall resolves the real file from the
-          // spec because MCP files are not always under a config root.
-          relPath: path.basename(mcpPath),
-          pointer,
-          value: spec.mcp.serverValue(server),
-        });
+        // relPath is informational only: planInstall resolves the real file
+        // from the spec because MCP files are not always under a config root.
+        if (spec.mcp.format === "toml") {
+          artifacts.push({
+            kind: "toml-merge",
+            root,
+            relPath: path.basename(mcpPath),
+            table: [...spec.mcp.topKey, server.name],
+            value: spec.mcp.serverValue(server),
+          });
+        } else {
+          const pointer = `/${[...spec.mcp.topKey, server.name].map(escapePointerSegment).join("/")}`;
+          artifacts.push({
+            kind: "json-merge",
+            root,
+            relPath: path.basename(mcpPath),
+            pointer,
+            value: spec.mcp.serverValue(server),
+          });
+        }
       }
     }
 
@@ -634,6 +693,14 @@ function makePlanInstall(spec: SimpleAdapterSpec): TargetAdapter["planInstall"] 
     artifacts: GeneratedArtifact[],
     context: InstallContext,
   ): Promise<InstallOperationLike[]> => {
+    if (context.bundleRoot) {
+      // Simple adapters are sync-only: they must never write to real config
+      // paths during a plugin-bundle build. Core skips unsupported-plugin
+      // targets, so reaching here is a programming error — fail loudly.
+      throw new Error(
+        `adapter "${spec.id}" does not support plugin bundle generation (bundleRoot was set)`,
+      );
+    }
     const useSymlink =
       context.installMode === "symlink" ||
       (context.installMode === "auto" && context.symlinksReliable);
@@ -647,8 +714,8 @@ function makePlanInstall(spec: SimpleAdapterSpec): TargetAdapter["planInstall"] 
         case "skill": {
           const base =
             artifact.root === "userConfig"
-              ? spec.skills?.user?.(context.homeDir)
-              : spec.skills?.project(context.projectRoot);
+              ? spec.skills?.user?.(context.homeDir, context.env)
+              : spec.skills?.project?.(context.projectRoot);
           if (!base) {
             throw new Error(`${spec.id} adapter: skill artifacts are not supported for this scope`);
           }
@@ -708,8 +775,17 @@ function makePlanInstall(spec: SimpleAdapterSpec): TargetAdapter["planInstall"] 
           });
           break;
         }
-        case "toml-merge":
-          throw new Error(`${spec.id} adapter does not emit toml-merge artifacts`);
+        case "toml-merge": {
+          const file =
+            artifact.root === "userConfig"
+              ? spec.mcp.user(adapterCtx)
+              : spec.mcp.project?.(adapterCtx);
+          if (!file) {
+            throw new Error(`${spec.id} adapter: no MCP file for scope "${artifact.root}"`);
+          }
+          ops.push({ type: "mergeToml", path: file, table: artifact.table, value: artifact.value });
+          break;
+        }
       }
     }
     return ops;
@@ -860,7 +936,12 @@ function makeImport(spec: SimpleAdapterSpec): TargetAdapter["import"] {
       if (raw !== undefined && raw.trim() !== "") {
         let parsed: unknown;
         try {
-          parsed = spec.mcp.format === "yaml" ? parseYaml(raw) : JSON.parse(raw);
+          parsed =
+            spec.mcp.format === "yaml"
+              ? parseYaml(raw)
+              : spec.mcp.format === "toml"
+                ? parseToml(raw)
+                : JSON.parse(raw);
         } catch (error) {
           warnings.push(`failed to parse ${mcpPath}: ${(error as Error).message}`);
           parsed = undefined;
@@ -875,16 +956,28 @@ function makeImport(spec: SimpleAdapterSpec): TargetAdapter["import"] {
             if (parsedServer) mcpServers[name] = parsedServer;
             else warnings.push(`mcp server "${name}": unrecognized shape in ${mcpPath}, skipped`);
           }
+        } else if (Array.isArray(node)) {
+          // Array-of-tables form (e.g. TOML [[mcp_servers]] with a name field).
+          for (const entry of node) {
+            if (!isRecord(entry) || typeof entry.name !== "string") continue;
+            const parsedServer = spec.mcp.parseServer(entry.name, entry);
+            if (parsedServer) mcpServers[entry.name] = parsedServer;
+            else {
+              warnings.push(
+                `mcp server "${entry.name}": unrecognized shape in ${mcpPath}, skipped`,
+              );
+            }
+          }
         }
       }
     }
 
     const skillBases: string[] = [];
     if (spec.skills) {
-      if (context.scope === "project") {
+      if (context.scope === "project" && spec.skills.project) {
         skillBases.push(spec.skills.project(context.projectRoot));
-      } else if (spec.skills.user) {
-        skillBases.push(spec.skills.user(context.homeDir));
+      } else if (context.scope === "user" && spec.skills.user) {
+        skillBases.push(spec.skills.user(context.homeDir, context.env));
       }
     }
     const skills = await importSkills(skillBases, warnings);
@@ -913,7 +1006,7 @@ function makeNativeSources(spec: SimpleAdapterSpec): TargetAdapter["nativeSource
   return async (context: ImportContext): Promise<string[]> => {
     if (spec.nativeSourcesPaths) return spec.nativeSourcesPaths(context);
     const out = [spec.mcp.user(adapterContextOf(context))];
-    const skillsUser = spec.skills?.user?.(context.homeDir);
+    const skillsUser = spec.skills?.user?.(context.homeDir, context.env);
     if (skillsUser) out.push(skillsUser);
     return out;
   };

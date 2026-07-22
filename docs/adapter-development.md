@@ -295,6 +295,83 @@ export function createZedcodeAdapter(): TargetAdapter {
 }
 ```
 
+## The simple-adapter factory
+
+Most targets do not need a hand-written adapter. `packages/adapter-ext` ships
+15 adapters (cursor, windsurf, cline, roo, kilo, copilot-vscode, copilot-cli,
+gemini, antigravity, opencode, openclaw, pi, hermes, vibe, droid) built from
+one declarative factory:
+
+```ts
+import { defineSimpleAdapter, type SimpleAdapterSpec } from "@agentpack/adapter-ext";
+```
+
+**Use `defineSimpleAdapter` when** the target is sync-oriented and its native
+surface is: a JSON / JSONC / YAML / TOML MCP config file, markdown instruction
+files, and (optionally) a skills directory. The factory derives `detect`,
+`analyze`, `generate`, `planInstall`, `import`, and `nativeSources` from the
+spec — including capability findings (missing skills directory → `unsupported`
+skills, user-scope-only MCP → `degraded` at project scope, plugins always
+`unsupported`). **Write a full `TargetAdapter` when** you need plugin bundle
+layouts, hook systems beyond the flat `hooks.json` shape, TOML tables with
+nonstandard nesting, or detection logic the spec cannot express (like the
+Codex/Claude/Kimi adapters).
+
+A minimal real spec (a fictional "zetacode" with a JSON MCP file under a
+custom top key and AGENTS.md instructions):
+
+```ts
+import path from "node:path";
+import { buildServerValue, defineSimpleAdapter, parseNativeServer } from "@agentpack/adapter-ext";
+
+export const zetacodeAdapter = defineSimpleAdapter({
+  id: "zetacode" as never, // TargetId is a closed enum; widen targetIdSchema
+  executables: ["zeta"],
+  userConfigRoot: (ctx) => path.join(ctx.homeDir, ".zeta"),
+  projectConfigRoot: (ctx) => path.join(ctx.projectRoot, ".zeta"),
+  skills: {
+    user: (home) => path.join(home, ".zeta", "skills"),
+    project: (root) => path.join(root, ".zeta", "skills"),
+  },
+  mcp: {
+    user: (ctx) => path.join(ctx.homeDir, ".zeta", "config.json"),
+    project: (ctx) => path.join(ctx.projectRoot, ".zeta", "config.json"),
+    format: "json",
+    topKey: ["mcp"], // servers live under the "mcp" key
+    serverValue: (server) => buildServerValue(server, { envRef: "plain", cwd: true }),
+    parseServer: (name, raw) => parseNativeServer(name, raw, { envRef: "plain", cwd: true }),
+  },
+  instructions: {
+    projectFile: "AGENTS.md",
+    userFile: "AGENTS.md",
+    directoryFile: (dir) => `${dir}/AGENTS.md`,
+  },
+  hooks: { support: "unsupported" },
+});
+```
+
+`buildServerValue`/`parseNativeServer` cover the common `mcpServers`-style
+entry shape with knobs for URL keys (`urlKey: "serverUrl"`,
+`httpUrlKey: "httpUrl"` for Gemini-style HTTP/SSE splits), explicit transport
+types, env-reference syntax (`plain` `${VAR}`, `env` `${env:VAR}`, `brace`
+`{env:VAR}`), and `transportKey` for entries that say `transport` instead of
+`type`. `format: "yaml"` handles both real YAML (hermes `config.yaml`) and
+JSONC (kilo `kilo.jsonc`); `format: "toml"` merges via `mergeTomlAtTable`
+(vibe `config.toml`).
+
+Two factory rules to know:
+
+- **Sync-only means no bundles.** A simple adapter's `planInstall` **must
+  throw when `context.bundleRoot` is set** — reaching bundle planning would
+  mean writing to real config paths during a build. This is safe because the
+  factory's `analyze` reports `plugin` as `unsupported`, and core's
+  `buildPlugins` skips targets whose analysis says the plugin is unsupported;
+  the throw is a loud guard against programming errors, not a runtime path.
+- **MCP `relPath` is informational.** The factory resolves the real MCP file
+  from the spec in `planInstall`, because native MCP files do not always live
+  under a config root (e.g. `<VS Code User>/mcp.json`, project-root
+  `kilo.jsonc`).
+
 ## Registering the adapter
 
 The core takes adapters through an `AdapterRegistry`
@@ -306,8 +383,15 @@ import { createRegistry } from "@agentpack/core";
 import { codexAdapter } from "@agentpack/adapter-codex";
 import { claudeAdapter } from "@agentpack/adapter-claude";
 import { kimiAdapter } from "@agentpack/adapter-kimi";
+import { extAdapters } from "@agentpack/adapter-ext"; // the 15 simple adapters
 
-const registry = createRegistry([codexAdapter, claudeAdapter, kimiAdapter, createZedcodeAdapter()]);
+const registry = createRegistry([
+  codexAdapter,
+  claudeAdapter,
+  kimiAdapter,
+  ...extAdapters,
+  createZedcodeAdapter(),
+]);
 ```
 
 The CLI builds exactly this registry at startup (built-in adapters plus any

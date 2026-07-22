@@ -2,7 +2,8 @@
 
 **Author once, validate once, synchronize everywhere** — AgentPack keeps your
 AI-agent extensions in one canonical repo and compiles them into native config
-for **OpenAI Codex**, **Anthropic Claude Code**, and **Kimi Code**.
+for **18 AI coding agents**, including **OpenAI Codex**,
+**Anthropic Claude Code**, and **Kimi Code**.
 
 [![CI](https://github.com/Hardt-LLC/AgentPack/actions/workflows/ci.yml/badge.svg)](https://github.com/Hardt-LLC/AgentPack/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -30,19 +31,19 @@ result into each agent's native configuration.
 
 ## Features at a glance
 
-| Area                   | What you get                                                                                                                                                   |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Components             | Agent Skills, MCP servers (stdio/http/sse), instructions, hooks, plugin metadata — one `pack.yaml` per pack.                                                   |
-| Targets                | OpenAI Codex, Anthropic Claude Code, Kimi Code; third-party targets via the adapter API.                                                                       |
-| Capability negotiation | Per-component findings (`native` / `transpiled` / `degraded` / `unsupported`) with `permissive`, `strict`, and `portable` strictness modes.                    |
-| Sync engine            | Side-effect-free plans, atomic writes, backups, conflict detection (exit 3), trust gate for executable packs (exit 4), idempotent re-syncs.                    |
-| MCP gateway            | One entry per agent; live fan-out; tools namespaced `<server>__<tool>`; per-server degradation; `allowTools`/`denyTools` enforced uniformly.                   |
-| Watch mode             | `agentpack watch` re-syncs on every pack edit, debounced; trust refusals and conflicts are reported while watching continues.                                  |
-| Distribution           | Git-sourced packs pinned by commit in a lockfile; `agentpack build` produces redistributable per-target plugin bundles.                                        |
-| Onboarding             | `gateway setup --adopt` / `sync --adopt` take over pre-existing config restorably; `agentpack uninstall` removes AgentPack and restores the originals.         |
-| Auto-collection        | `agentpack collect` gathers natively installed MCP servers/skills into reviewable `packs/inbox-<target>/` packs; `agentpack promote` shares them after review. |
-| Background operation   | `agentpack service install` runs `watch --collect` at login (launchd / systemd user); a Claude SessionStart hook collects at every session start.              |
-| Secrets                | `{ fromEnv }` / template env references only — never resolved, never written to disk; hardcoded-secret scanning; names-only reporting.                         |
+| Area                   | What you get                                                                                                                                                                                                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Components             | Agent Skills, MCP servers (stdio/http/sse), instructions, hooks, plugin metadata — one `pack.yaml` per pack.                                                                                                                                                                                                                  |
+| Targets                | 18 agents: full adapters (sync, plugin bundles, import, collect) for **Codex, Claude Code, Kimi Code** + 15 more via the simple-adapter layer (sync of skills/MCP/instructions + import) — cursor, windsurf, cline, roo, kilo, copilot-vscode, copilot-cli, gemini, antigravity, opencode, openclaw, pi, hermes, vibe, droid. |
+| Capability negotiation | Per-component findings (`native` / `transpiled` / `degraded` / `unsupported`) with `permissive`, `strict`, and `portable` strictness modes.                                                                                                                                                                                   |
+| Sync engine            | Side-effect-free plans, atomic writes, backups, conflict detection (exit 3), trust gate for executable packs (exit 4), idempotent re-syncs.                                                                                                                                                                                   |
+| MCP gateway            | One entry per agent; live fan-out; tools namespaced `<server>__<tool>`; per-server degradation; `allowTools`/`denyTools` enforced uniformly.                                                                                                                                                                                  |
+| Watch mode             | `agentpack watch` re-syncs on every pack edit, debounced; trust refusals and conflicts are reported while watching continues.                                                                                                                                                                                                 |
+| Distribution           | Git-sourced packs pinned by commit in a lockfile; `agentpack build` produces redistributable per-target plugin bundles.                                                                                                                                                                                                       |
+| Onboarding             | `gateway setup --adopt` / `sync --adopt` take over pre-existing config restorably; `agentpack uninstall` removes AgentPack and restores the originals.                                                                                                                                                                        |
+| Auto-collection        | `agentpack collect` gathers natively installed MCP servers/skills into reviewable `packs/inbox-<target>/` packs; `agentpack promote` shares them after review.                                                                                                                                                                |
+| Background operation   | `agentpack service install` runs `watch --collect` at login (launchd / systemd user); a Claude SessionStart hook collects at every session start.                                                                                                                                                                             |
+| Secrets                | `{ fromEnv }` / template env references only — never resolved, never written to disk; hardcoded-secret scanning; names-only reporting.                                                                                                                                                                                        |
 
 ## Installation
 
@@ -73,8 +74,7 @@ agentpack --help
 ```
 
 The CLI binary is `apps/cli/dist/cli.mjs` (the `agentpack` bin).
-AgentPack is not yet published to the npm registry — building from source, as
-above, is currently the only install path.
+AgentPack is not yet published to the npm registry.
 
 ## Quickstart (5 minutes)
 
@@ -216,7 +216,10 @@ Selection flags shared by `validate`, `plan`, `sync`, `diff`, `build`:
 
 - `--profile <name>` — use a profile from `agentpack.yaml` (default: the
   `default` profile, or all packs × all targets when no profiles exist).
-- `--targets codex,claude,kimi` — restrict targets (also `--target <id>`).
+- `--targets <list>` — comma-separated target ids (18 available: codex,
+  claude, kimi, cursor, windsurf, cline, roo, kilo, copilot-vscode,
+  copilot-cli, gemini, antigravity, opencode, openclaw, pi, hermes, vibe,
+  droid). Also `--target <id>` for a single one.
 - `--scope project|user` — install into the project or the user config root.
 - `--mode auto|symlink|copy` — skill install mode (`auto` = symlink, falling
   back to copy on Windows / filesystems without symlink support).
@@ -264,6 +267,38 @@ Exit codes:
 | 2    | Operational error (I/O, corrupt state, missing pack, …).                                                                    |
 | 3    | Conflict: files/keys AgentPack owns were modified externally. Re-run with `--force` to overwrite (a backup is still taken). |
 | 4    | Trust refusal: a pack with executable components is not trusted. Re-run with `--trust <pack>`.                              |
+
+## Supported targets
+
+**Full adapters** — sync (skills, MCP, instructions, hooks), plugin bundles,
+import, and native-change collection: **Codex**, **Claude Code**,
+**Kimi Code** (detailed in [Target examples](#target-examples)).
+
+**Simple-adapter layer** (`@agentpack/adapter-ext`) — sync of skills, MCP
+servers, and instructions, plus import/collect; plugin bundles and hook
+emission are MVP-limited per tool:
+
+| Target         | MCP config                                                                              | Instructions                                           | Notes                                                                                  |
+| -------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| cursor         | `~/.cursor/mcp.json`, `<project>/.cursor/mcp.json` (`mcpServers`)                       | `AGENTS.md` (project + subdirs)                        | Hooks transpiled to `hooks.json`; user-scope instructions unsupported.                 |
+| windsurf       | `~/.codeium/windsurf/mcp_config.json` — **user scope only** (`serverUrl` key)           | `.windsurfrules` (project), `memories/global_rules.md` | Hooks transpiled to `hooks.json`.                                                      |
+| cline          | `$CLINE_DATA_DIR/settings/cline_mcp_settings.json` — **user scope only**                | `.clinerules`, `rules/default.md`                      | HTTP entries typed `streamableHttp`.                                                   |
+| roo            | VS Code globalStorage `mcp_settings.json`, `<project>/.roo/mcp.json`                    | `.roorules`                                            | **No skills directory** (skills unsupported); explicit `type` required on MCP entries. |
+| kilo           | `~/.config/kilo/kilo.jsonc`, `<project>/kilo.jsonc` (top key `mcp`, JSONC)              | `AGENTS.md` (project + subdirs)                        | User-scope instructions unsupported (kilo.jsonc `instructions` array is not markdown). |
+| copilot-vscode | `<VS Code User>/mcp.json`, `<project>/.vscode/mcp.json` (top key `servers`)             | `.github/copilot-instructions.md`                      | VS Code profile dir varies (Insiders/VSCodium).                                        |
+| copilot-cli    | `~/.copilot/mcp-config.json`, `<project>/.mcp.json`                                     | `.github/copilot-instructions.md`                      |                                                                                        |
+| gemini         | `~/.gemini/settings.json`, `<project>/.gemini/settings.json`                            | `GEMINI.md` (project, subdirs, global)                 | `httpUrl` for HTTP servers vs `url` for SSE; MCP lives inside `settings.json`.         |
+| antigravity    | `~/.gemini/config/mcp_config.json`, `<project>/.agents/mcp_config.json`                 | `.agents/rules/agentpack.md`, `~/.gemini/GEMINI.md`    | `serverUrl` key.                                                                       |
+| opencode       | `~/.config/opencode/opencode.json`, `<project>/opencode.json` (top key `mcp`, JSONC)    | `AGENTS.md` (project + subdirs)                        | **No skills directory** (agents/commands/plugins instead).                             |
+| openclaw       | `~/.openclaw/openclaw.json` — **user scope only** (top keys `mcp.servers`, JSON5)       | `workspace/AGENTS.md` under the config root            |                                                                                        |
+| pi             | `$PI_CODING_AGENT_DIR/mcp.json` (default `~/.pi/agent/mcp.json`), `<project>/.mcp.json` | `AGENTS.md`                                            |                                                                                        |
+| hermes         | `$HERMES_HOME/config.yaml` — **user scope only** (YAML, top key `mcp_servers`)          | `.hermes.md`                                           | User-scope skills only.                                                                |
+| vibe           | `$VIBE_HOME/config.toml`, `<project>/.vibe/config.toml` (TOML `[[mcp_servers]]`)        | `AGENTS.md`                                            | The only TOML-based ext target.                                                        |
+| droid          | `~/.factory/mcp.json`, `<project>/.factory/mcp.json`                                    | `AGENTS.md` (project + subdirs)                        |                                                                                        |
+
+For every target: `agentpack sync --targets <id>` works the same; `validate`
+reports exactly which components are native, transpiled, degraded, or
+unsupported per tool.
 
 ## Target examples
 

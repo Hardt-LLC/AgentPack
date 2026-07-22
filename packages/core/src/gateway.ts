@@ -1,7 +1,6 @@
 import path from "node:path";
 import {
   renderEnvRecord,
-  TARGET_IDS,
   type CanonicalMcpServer,
   type CanonicalPack,
   type Diagnostic,

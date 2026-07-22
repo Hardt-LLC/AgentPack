@@ -53,12 +53,12 @@ A profile names a reusable selection. The profile named `default` is used when
 no `--profile` flag is given; if no profiles exist at all, the selection is
 all packs × all targets with `project` scope and `auto` install mode.
 
-| Field         | Type                                     | Required | Default   | Description                     |
-| ------------- | ---------------------------------------- | -------- | --------- | ------------------------------- |
-| `packs`       | array of pack names (min 1)              | yes      | —         | Packs included in this profile. |
-| `targets`     | array of `codex`/`claude`/`kimi` (min 1) | yes      | —         | Targets to sync to.             |
-| `scope`       | `project` \| `user`                      | no       | `project` | Install scope.                  |
-| `installMode` | `auto` \| `symlink` \| `copy`            | no       | `auto`    | Skill install mode.             |
+| Field         | Type                          | Required | Default   | Description                     |
+| ------------- | ----------------------------- | -------- | --------- | ------------------------------- |
+| `packs`       | array of pack names (min 1)   | yes      | —         | Packs included in this profile. |
+| `targets`     | array of target ids (min 1)   | yes      | —         | Targets to sync to.             |
+| `scope`       | `project` \| `user`           | no       | `project` | Install scope.                  |
+| `installMode` | `auto` \| `symlink` \| `copy` | no       | `auto`    | Skill install mode.             |
 
 CLI flags `--targets`, `--scope`, `--mode` override the profile values.
 
@@ -233,13 +233,14 @@ kimi adapter passes matchers through (omitting `all`) and does not support the
 | --------- | ------- | -------- | ------- | --------------------------------------------- |
 | `enabled` | boolean | no       | `true`  | Set `false` to skip this pack for the target. |
 
-Keys: `codex`, `claude`, `kimi`. A pack disabled for every selected target is
-dropped from the selection entirely.
+Keys: any target id (`codex`, `claude`, `kimi`, plus the 15 ext ids — see
+[../README.md](../README.md#supported-targets)). A pack disabled for every
+selected target is dropped from the selection entirely.
 
 ### `spec.extensions.<target>`
 
-Free-form per-target data (`map of string → unknown`, keys `codex`, `claude`,
-`kimi`). Contents are not validated by the canonical schema; they are passed
+Free-form per-target data (`map of string → unknown`), keyed by target id.
+Contents are not validated by the canonical schema; they are passed
 verbatim to exactly one adapter as `pack.targetExtensions.<target>`.
 
 Documented extension points:

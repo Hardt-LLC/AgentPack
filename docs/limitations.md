@@ -164,10 +164,45 @@ things, both texts land in the file and the model sees both.
   system"; their collection path is the watch service or manual
   `agentpack collect`.
 
+## Simple-adapter (ext) limits
+
+The 15 targets built on `defineSimpleAdapter` (cursor, windsurf, cline, roo,
+kilo, copilot-vscode, copilot-cli, gemini, antigravity, opencode, openclaw,
+pi, hermes, vibe, droid) are sync-oriented; the layer is deliberately narrower
+than the three full adapters:
+
+- **No plugin bundles.** `plugin` analyzes as `unsupported` for all ext
+  targets and `agentpack build` skips them (their `planInstall` throws if it
+  is ever handed a `bundleRoot`). Publish plugins for these tools natively.
+- **Hooks only where the shape fits.** Canonical hooks are transpiled to a
+  flat `hooks.json` for cursor and windsurf; every other ext target reports
+  them as `unsupported`.
+- **roo and opencode have no skills directory.** Skills analyze as
+  `unsupported` there (the remediation suggests the tool's own concept —
+  roo modes, opencode agents/commands/plugins).
+- **Some tools are user-scope-only for MCP.** windsurf, cline, hermes, and
+  openclaw document no project-scope MCP file; project-scope MCP servers
+  analyze as `degraded` and are not installed there (sync at user scope
+  instead).
+- **kilo and cursor have no user-scope instruction file.** Global-scope
+  instructions analyze as `unsupported` (kilo's global instructions live in
+  the kilo.jsonc `instructions` array, not markdown); keep instructions at
+  project scope.
+- **Import quality varies per tool.** Entries whose native shape the spec's
+  `parseServer` does not recognize are skipped with a warning; tools without
+  a documented config layout (legacy variants) may import nothing.
+- **Comment-bearing config files degrade import, not sync.** openclaw's
+  `openclaw.json` is JSON5 and opencode's `opencode.json` is JSONC; sync
+  writes strict JSON, which both tools accept. But a hand-maintained file
+  containing comments fails `JSON.parse` on import — collect/import then
+  reports a warning and imports nothing from that file (kilo's `kilo.jsonc`
+  is the exception: it is parsed through the YAML engine, which tolerates
+  comments).
+
 ## Other MVP boundaries
 
-- **Target ids are a closed enum** (`codex` | `claude` | `kimi`) in the
-  schema; third-party adapters need `targetIdSchema` widened (see
+- **Target ids are a closed enum** (the 18 built-in ids) in the schema;
+  third-party adapters need `targetIdSchema` widened (see
   [adapter-development.md](adapter-development.md)).
 - **No secret-finding suppression syntax.** A hardcoded-secret warning can
   only be resolved by moving the value to an env reference or rewording the

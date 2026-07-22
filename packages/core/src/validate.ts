@@ -1,6 +1,5 @@
 import {
   collectEnvVars,
-  TARGET_IDS,
   type CapabilityReport,
   type Diagnostic,
   type Strictness,

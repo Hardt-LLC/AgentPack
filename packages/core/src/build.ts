@@ -76,6 +76,15 @@ export async function buildPlugins(
       const report = await adapter.analyze(pack, context);
       capabilityReports.push(report);
 
+      // Skip bundle generation when the adapter cannot produce plugin
+      // bundles (capability model: plugin unsupported for this target).
+      // Without this guard, sync-only adapters would write to real config
+      // paths because bundleRoot means nothing to them.
+      const pluginUnsupported = report.findings.some(
+        (f) => f.componentType === "plugin" && f.support === "unsupported",
+      );
+      if (pluginUnsupported) continue;
+
       const artifacts: GeneratedArtifact[] = await adapter.generate(pack, context);
       const bundleDir = path.join(outputDir, target, pack.metadata.name);
       const operations = (await adapter.planInstall(artifacts, {
